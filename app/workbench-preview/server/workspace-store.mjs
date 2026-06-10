@@ -30,6 +30,9 @@ export const DEFAULT_WORKSPACE_STATE = {
   qaRuns: [],
   deliveryReports: [],
   artifacts: [],
+  taskPacks: [],
+  externalArtifacts: [],
+  ingestionRuns: [],
 }
 
 export class JsonWorkspaceStore {
@@ -96,6 +99,9 @@ function normalizeWorkspaceState(input) {
     'qaRuns',
     'deliveryReports',
     'artifacts',
+    'taskPacks',
+    'externalArtifacts',
+    'ingestionRuns',
   ]) {
     if (!Array.isArray(state[key])) state[key] = []
   }

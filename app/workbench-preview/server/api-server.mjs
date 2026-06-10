@@ -9,6 +9,13 @@ import { JsonRunStore } from './storage.mjs'
 import { JsonWorkspaceStore } from './workspace-store.mjs'
 import { deriveWorkflow } from './workflow.mjs'
 import {
+  AgentWorkflowError,
+  generateTaskPack,
+  reviewIngestionRun as reviewWorkspaceIngestionRun,
+  runArtifactIngestion,
+  submitArtifact,
+} from './agent-workflow-actions.mjs'
+import {
   SiteReadingError,
   createLocalSiteReadSnapshot,
   saveProjectProfile,
@@ -29,6 +36,10 @@ export function createApiServer() {
       await routeRequest(request, response)
     } catch (error) {
       if (error instanceof SiteReadingError) {
+        sendError(response, error.statusCode, error.code, error.message)
+        return
+      }
+      if (error instanceof AgentWorkflowError) {
         sendError(response, error.statusCode, error.code, error.message)
         return
       }
@@ -116,6 +127,121 @@ async function routeRequest(request, response) {
       return
     }
     sendJson(response, 200, { snapshot })
+    return
+  }
+
+  if (request.method === 'GET' && pathname === '/api/task-packs') {
+    const state = await workspaceStore.readState()
+    sendJson(response, 200, { taskPacks: state.taskPacks })
+    return
+  }
+
+  if (request.method === 'POST' && pathname === '/api/task-packs/generate') {
+    const body = await readJsonBody(request)
+    if (body.error) {
+      sendError(response, 400, 'bad_json', body.error)
+      return
+    }
+    const { state, result } = await workspaceStore.updateState((draft) => generateTaskPack(draft, body.value))
+    sendJson(response, 201, {
+      taskPack: result,
+      workspace: toWorkspaceView(state),
+      workflow: deriveWorkflow(state),
+    })
+    return
+  }
+
+  const taskPackMatch = pathname.match(/^\/api\/task-packs\/([^/]+)$/)
+  if (request.method === 'GET' && taskPackMatch) {
+    const state = await workspaceStore.readState()
+    const taskPack = state.taskPacks.find((item) => item.taskPackId === decodeURIComponent(taskPackMatch[1]))
+    if (!taskPack) {
+      sendError(response, 404, 'unknown_task_pack', '没有找到对应的任务包。')
+      return
+    }
+    sendJson(response, 200, { taskPack })
+    return
+  }
+
+  if (request.method === 'GET' && pathname === '/api/artifacts') {
+    const state = await workspaceStore.readState()
+    sendJson(response, 200, { artifacts: state.externalArtifacts })
+    return
+  }
+
+  if (request.method === 'POST' && pathname === '/api/artifacts') {
+    const body = await readJsonBody(request)
+    if (body.error) {
+      sendError(response, 400, 'bad_json', body.error)
+      return
+    }
+    const { state, result } = await workspaceStore.updateState((draft) => submitArtifact(draft, body.value))
+    sendJson(response, 201, {
+      artifact: result,
+      workspace: toWorkspaceView(state),
+      workflow: deriveWorkflow(state),
+    })
+    return
+  }
+
+  const artifactMatch = pathname.match(/^\/api\/artifacts\/([^/]+)$/)
+  if (request.method === 'GET' && artifactMatch) {
+    const state = await workspaceStore.readState()
+    const artifact = state.externalArtifacts.find((item) => item.artifactId === decodeURIComponent(artifactMatch[1]))
+    if (!artifact) {
+      sendError(response, 404, 'unknown_artifact', '没有找到对应的回填 Artifact。')
+      return
+    }
+    sendJson(response, 200, { artifact })
+    return
+  }
+
+  if (request.method === 'GET' && pathname === '/api/ingestion-runs') {
+    const state = await workspaceStore.readState()
+    sendJson(response, 200, { ingestionRuns: state.ingestionRuns })
+    return
+  }
+
+  if (request.method === 'POST' && pathname === '/api/ingestion-runs') {
+    const body = await readJsonBody(request)
+    if (body.error) {
+      sendError(response, 400, 'bad_json', body.error)
+      return
+    }
+    const { state, result } = await workspaceStore.updateState((draft) => runArtifactIngestion(draft, body.value))
+    sendJson(response, 201, {
+      ingestionRun: result,
+      workspace: toWorkspaceView(state),
+      workflow: deriveWorkflow(state),
+    })
+    return
+  }
+
+  const ingestionReviewMatch = pathname.match(/^\/api\/ingestion-runs\/([^/]+)\/review$/)
+  if (request.method === 'POST' && ingestionReviewMatch) {
+    const body = await readJsonBody(request)
+    if (body.error) {
+      sendError(response, 400, 'bad_json', body.error)
+      return
+    }
+    const { state, result } = await workspaceStore.updateState((draft) => reviewWorkspaceIngestionRun(draft, decodeURIComponent(ingestionReviewMatch[1]), body.value))
+    sendJson(response, 200, {
+      ingestionRun: result,
+      workspace: toWorkspaceView(state),
+      workflow: deriveWorkflow(state),
+    })
+    return
+  }
+
+  const ingestionMatch = pathname.match(/^\/api\/ingestion-runs\/([^/]+)$/)
+  if (request.method === 'GET' && ingestionMatch) {
+    const state = await workspaceStore.readState()
+    const ingestionRun = state.ingestionRuns.find((item) => item.ingestionRunId === decodeURIComponent(ingestionMatch[1]))
+    if (!ingestionRun) {
+      sendError(response, 404, 'unknown_ingestion_run', '没有找到对应的回填解析记录。')
+      return
+    }
+    sendJson(response, 200, { ingestionRun })
     return
   }
 

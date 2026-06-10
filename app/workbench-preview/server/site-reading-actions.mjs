@@ -24,6 +24,9 @@ export function toWorkspaceView(state) {
       mode: snapshot.mode,
     })),
     artifacts: state.artifacts,
+    taskPacks: state.taskPacks,
+    externalArtifacts: state.externalArtifacts,
+    ingestionRuns: state.ingestionRuns,
   }
 }
 
@@ -112,6 +115,22 @@ export function createLocalSiteReadSnapshot(state) {
     title: '站点读取快照',
     stepLabel: '站点接入与读取',
     sourceId: snapshot.snapshotId,
+    route: '/project-center',
+  })
+  return snapshot
+}
+
+export function applyApprovedSiteReadSnapshot(state, snapshot, sourceId) {
+  if (!snapshot?.pages?.length) {
+    throw new SiteReadingError(409, 'cannot_advance', '站点读取结果缺少页面记录，不能进入下一阶段。')
+  }
+  state.siteReadSnapshots = state.siteReadSnapshots.filter((item) => item.snapshotId !== snapshot.snapshotId)
+  state.siteReadSnapshots.unshift(snapshot)
+  addArtifact(state, {
+    type: 'site_read_snapshot',
+    title: '外部智能体回填的站点读取快照',
+    stepLabel: '站点接入与读取',
+    sourceId: sourceId || snapshot.snapshotId,
     route: '/project-center',
   })
   return snapshot

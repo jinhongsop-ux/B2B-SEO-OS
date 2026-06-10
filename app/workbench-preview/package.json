@@ -12,7 +12,8 @@
     "workbench-preview": "node scripts/start-workbench-preview.mjs",
     "test:api": "node tests/api-contract.test.mjs",
     "test:site-reading": "node tests/site-reading-contract.test.mjs",
-    "test:all": "npm run test:api && npm run test:site-reading"
+    "test:agent-workflow": "node tests/agent-workflow-contract.test.mjs",
+    "test:all": "npm run test:api && npm run test:site-reading && npm run test:agent-workflow"
   },
   "dependencies": {
     "react": "^18.3.1",
