@@ -1,0 +1,10 @@
+{
+  "workspaceId": "keywords-map",
+  "name": "页面与关键词",
+  "businessGoal": "管理页面、关键词、集群、内链和蚕食风险",
+  "firstScreen": [],
+  "secondaryModules": [],
+  "primaryActions": [],
+  "emptyState": "",
+  "linkedDataObjects": []
+}

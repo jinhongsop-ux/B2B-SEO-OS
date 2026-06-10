@@ -1,0 +1,12 @@
+{
+  "promptId": "",
+  "name": "",
+  "category": "",
+  "version": "v1",
+  "requiresHumanReview": true,
+  "canCreateTasks": true,
+  "canWriteWordPress": false,
+  "inputSchema": {},
+  "outputSchema": {},
+  "status": "draft"
+}

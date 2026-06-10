@@ -1,0 +1,15 @@
+{
+  "findingId": "finding_001",
+  "source": "frontend_audit",
+  "category": "b2b_information_architecture",
+  "severity": "high",
+  "url": "",
+  "title": "",
+  "description": "",
+  "evidence": "",
+  "recommendedAction": "",
+  "requiresKeywordData": false,
+  "requiresEvidence": false,
+  "requiresHumanReview": false,
+  "status": "open"
+}

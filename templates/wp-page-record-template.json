@@ -1,0 +1,21 @@
+{
+  "wpId": 123,
+  "type": "page",
+  "status": "publish",
+  "url": "https://example.com/products/",
+  "slug": "products",
+  "titleRendered": "Products",
+  "seoTitle": "",
+  "metaDescription": "",
+  "h1": "",
+  "headings": [],
+  "contentText": "",
+  "wordCount": 0,
+  "modifiedAt": "",
+  "detectedPageType": "product_line",
+  "primaryCta": "Request a Quote",
+  "formsDetected": [],
+  "internalLinksOut": [],
+  "mediaRefs": [],
+  "source": "wp_rest"
+}

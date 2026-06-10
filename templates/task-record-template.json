@@ -1,0 +1,17 @@
+{
+  "taskId": "task_001",
+  "taskType": "page_repair",
+  "title": "",
+  "source": "audit",
+  "sourceObjectIds": [],
+  "priority": "p1",
+  "priorityScore": 0,
+  "status": "todo",
+  "relatedUrl": "",
+  "relatedKeywordIds": [],
+  "relatedEvidenceIds": [],
+  "requiresHumanReview": true,
+  "acceptanceCriteria": [],
+  "createdAt": "",
+  "updatedAt": ""
+}

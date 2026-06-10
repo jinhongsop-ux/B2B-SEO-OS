@@ -1,0 +1,33 @@
+{
+  "name": "b2b-seo-os-workbench-preview",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "frontend": "vite --host 127.0.0.1 --port 3001",
+    "backend": "node server/api-server.mjs",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "workbench-preview": "node scripts/start-workbench-preview.mjs",
+    "test:api": "node tests/api-contract.test.mjs",
+    "test:site-reading": "node tests/site-reading-contract.test.mjs",
+    "test:all": "npm run test:api && npm run test:site-reading"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.0",
+    "lucide-react": "^0.441.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.41",
+    "tailwindcss": "^3.4.10",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2"
+  }
+}

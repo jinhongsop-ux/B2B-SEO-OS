@@ -1,0 +1,17 @@
+{
+  "siteId": "site_001",
+  "siteUrl": "https://example.com",
+  "mode": "wp_rest_readonly",
+  "generatedAt": "",
+  "counts": {
+    "pages": 0,
+    "posts": 0,
+    "products": 0,
+    "media": 0
+  },
+  "pagesFile": "wordpress/pages.json",
+  "postsFile": "wordpress/posts.json",
+  "productsFile": "wordpress/products.json",
+  "mediaFile": "wordpress/media.json",
+  "syncStatus": "success"
+}
