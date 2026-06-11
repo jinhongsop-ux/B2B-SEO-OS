@@ -5,6 +5,15 @@ import { randomUUID } from 'node:crypto'
 import { findPrompt, listPrompts } from './prompt-registry.mjs'
 import { buildInputContext } from './mock-context.mjs'
 import { buildManualPromptPackage, buildMockOutput } from './mock-executor.mjs'
+import {
+  AiRuntimeError,
+  JsonAiCallRunStore,
+  JsonAiSettingsStore,
+  generateAiText,
+  testAiConnection,
+  toPublicAiRun,
+  toPublicAiSettings,
+} from './ai-runtime.mjs'
 import { JsonRunStore } from './storage.mjs'
 import { JsonWorkspaceStore } from './workspace-store.mjs'
 import { deriveWorkflow } from './workflow.mjs'
@@ -29,6 +38,8 @@ const host = process.env.HOST || '127.0.0.1'
 const runtimeDir = path.resolve(process.env.B2B_SEO_OS_RUNTIME_DIR || path.join(appRoot, 'runtime', 'ai-workbench'))
 const store = new JsonRunStore(runtimeDir)
 const workspaceStore = new JsonWorkspaceStore(runtimeDir)
+const aiSettingsStore = new JsonAiSettingsStore(runtimeDir)
+const aiCallRunStore = new JsonAiCallRunStore(runtimeDir)
 
 export function createApiServer() {
   return http.createServer(async (request, response) => {
@@ -40,6 +51,10 @@ export function createApiServer() {
         return
       }
       if (error instanceof AgentWorkflowError) {
+        sendError(response, error.statusCode, error.code, error.message)
+        return
+      }
+      if (error instanceof AiRuntimeError) {
         sendError(response, error.statusCode, error.code, error.message)
         return
       }
@@ -65,15 +80,60 @@ async function routeRequest(request, response) {
   const pathname = url.pathname
 
   if (request.method === 'GET' && pathname === '/api/health') {
+    const aiSettings = await aiSettingsStore.readSettings()
     sendJson(response, 200, {
       ok: true,
       service: 'b2b-seo-os-local-ai-backend',
-      mode: 'manual_mock',
-      aiApiEnabled: false,
+      mode: aiSettings.mode,
+      aiApiEnabled: aiSettings.mode === 'real_api',
+      aiProvider: aiSettings.provider,
+      aiModel: aiSettings.model,
+      aiApiKeyConfigured: Boolean(aiSettings.apiKey),
       wordpressWritesEnabled: false,
       runtimeDir,
       promptCount: listPrompts().length,
     })
+    return
+  }
+
+  if (request.method === 'GET' && pathname === '/api/ai/settings') {
+    const settings = await aiSettingsStore.readSettings()
+    sendJson(response, 200, { settings: toPublicAiSettings(settings) })
+    return
+  }
+
+  if (request.method === 'POST' && pathname === '/api/ai/settings') {
+    const body = await readJsonBody(request)
+    if (body.error) {
+      sendError(response, 400, 'bad_json', body.error)
+      return
+    }
+    const settings = await aiSettingsStore.updateSettings(body.value)
+    sendJson(response, 200, { settings: toPublicAiSettings(settings) })
+    return
+  }
+
+  if (request.method === 'POST' && pathname === '/api/ai/test-connection') {
+    const result = await testAiConnection(aiSettingsStore, aiCallRunStore)
+    const settings = await aiSettingsStore.readSettings()
+    sendJson(response, 200, { result, settings: toPublicAiSettings(settings) })
+    return
+  }
+
+  if (request.method === 'POST' && pathname === '/api/ai/generate') {
+    const body = await readJsonBody(request)
+    if (body.error) {
+      sendError(response, 400, 'bad_json', body.error)
+      return
+    }
+    const { result, run } = await generateAiText(aiSettingsStore, aiCallRunStore, body.value)
+    sendJson(response, 200, { result, run: toPublicAiRun(run) })
+    return
+  }
+
+  if (request.method === 'GET' && pathname === '/api/ai/runs') {
+    const runs = await aiCallRunStore.listRuns()
+    sendJson(response, 200, { runs: runs.map(toPublicAiRun) })
     return
   }
 

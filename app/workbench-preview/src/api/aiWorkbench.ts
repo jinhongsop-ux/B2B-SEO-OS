@@ -1,4 +1,4 @@
-import type { AgentRun, BackendHealth, HumanReviewDecision, PromptDefinition } from '../types'
+import type { AgentRun, AiCallRun, AiConnectionTestResult, AiGenerateResult, AiProvider, BackendHealth, HumanReviewDecision, PromptDefinition, AiSettings, AiMode } from '../types'
 
 type ApiErrorBody = { error?: { code: string; message: string } }
 
@@ -20,6 +20,53 @@ async function requestJson<T>(url: string, options?: RequestInit): Promise<T> {
 
 export async function fetchHealth() {
   return requestJson<BackendHealth>('/api/health')
+}
+
+export async function fetchAiSettings() {
+  const body = await requestJson<{ settings: AiSettings }>('/api/ai/settings')
+  return body.settings
+}
+
+export async function saveAiSettings(input: {
+  mode: AiMode;
+  provider: AiProvider;
+  endpoint: string;
+  model: string;
+  apiKey?: string;
+  clearApiKey?: boolean;
+  temperature: number;
+  maxTokens: number;
+  requestTimeoutMs?: number;
+}) {
+  const body = await requestJson<{ settings: AiSettings }>('/api/ai/settings', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+  return body.settings
+}
+
+export async function testAiApiConnection() {
+  return requestJson<{ result: AiConnectionTestResult; settings: AiSettings }>('/api/ai/test-connection', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
+}
+
+export async function generateAiText(input: {
+  purpose: string;
+  messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
+  temperature?: number;
+  maxTokens?: number;
+}) {
+  return requestJson<{ result: AiGenerateResult; run: AiCallRun }>('/api/ai/generate', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export async function fetchAiCallRuns() {
+  const body = await requestJson<{ runs: AiCallRun[] }>('/api/ai/runs')
+  return body.runs
 }
 
 export async function fetchPrompts() {

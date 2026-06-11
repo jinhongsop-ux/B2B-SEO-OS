@@ -49,12 +49,17 @@ import {
 import {
   cancelAgentRun,
   createAgentRun,
+  fetchAiCallRuns,
+  fetchAiSettings,
   fetchHealth,
   fetchPrompt,
   fetchPrompts,
   fetchRun,
   fetchRuns,
+  generateAiText,
   reviewAgentRun,
+  saveAiSettings,
+  testAiApiConnection,
 } from './api/aiWorkbench'
 import {
   createSiteReadSnapshot,
@@ -84,7 +89,7 @@ import {
   workflowSteps,
 } from './mock/workbench'
 import Tutorial from './Tutorial'
-import type { AgentRun, AgentTaskPack, AuditFinding, BackendHealth, ExternalArtifact, HumanReviewDecision, IngestionRun, Keyword, PromptDefinition, Task, WpPage, WorkflowState, WorkspaceState } from './types'
+import type { AgentRun, AgentTaskPack, AiCallRun, AiMode, AiProvider, AiSettings, AuditFinding, BackendHealth, ExternalArtifact, HumanReviewDecision, IngestionRun, Keyword, PromptDefinition, Task, WpPage, WorkflowState, WorkspaceState } from './types'
 
 type Tone = 'default' | 'blue' | 'green' | 'orange' | 'red' | 'purple' | 'gray'
 type DrawerAction = { label: string; tone?: Tone; onClick?: () => void; icon?: ReactNode }
@@ -2559,9 +2564,28 @@ function App() {
     const boundaries = ['程序内 AI 只负责任务包生成和 Artifact 解析', '复杂抓取、搜索、审计、调研由外部智能体完成', '只支持 WordPress B2B 独立站', '当前为只读模式', '不自动发布', '不写入 WordPress', '不上传媒体', '不自动确认商业事实', '不做供应商验证', '不做多站点后台', '不做 Shopify / Webflow 适配', '不做外链 / 广告 / CRM']
     const [backendHealth, setBackendHealth] = useState<BackendHealth | null>(null)
     const [backendError, setBackendError] = useState('')
+    const [aiSettings, setAiSettings] = useState<AiSettings | null>(null)
+    const [aiDraft, setAiDraft] = useState({
+      mode: 'manual_mock' as AiMode,
+      provider: 'openai_compatible' as AiProvider,
+      endpoint: '',
+      model: 'manual-mock',
+      apiKey: '',
+      temperature: '0.2',
+      maxTokens: '4000',
+      requestTimeoutMs: '30000',
+    })
+    const [aiRuns, setAiRuns] = useState<AiCallRun[]>([])
+    const [aiSettingsBusy, setAiSettingsBusy] = useState(false)
+    const [aiSettingsError, setAiSettingsError] = useState('')
+    const [aiTestResult, setAiTestResult] = useState('')
+    const [aiTestPrompt, setAiTestPrompt] = useState('请用一句话说明当前 AI API 已经可以被 B2B SEO OS 调用。')
+    const [aiGeneratedPreview, setAiGeneratedPreview] = useState('')
+    const inputClass = 'mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
 
     useEffect(() => {
       void refreshBackendHealth()
+      void refreshAiApiPanel()
     }, [])
 
     async function refreshBackendHealth() {
@@ -2575,8 +2599,195 @@ function App() {
       }
     }
 
+    async function refreshAiApiPanel() {
+      try {
+        const [settings, runs] = await Promise.all([fetchAiSettings(), fetchAiCallRuns()])
+        setAiSettings(settings)
+        setAiDraft({
+          mode: settings.mode,
+          provider: settings.provider,
+          endpoint: settings.endpoint,
+          model: settings.model,
+          apiKey: '',
+          temperature: String(settings.temperature),
+          maxTokens: String(settings.maxTokens),
+          requestTimeoutMs: String(settings.requestTimeoutMs),
+        })
+        setAiRuns(runs)
+        setAiSettingsError('')
+      } catch (error) {
+        setAiSettingsError(error instanceof Error ? error.message : 'AI 设置读取失败')
+      }
+    }
+
+    async function saveAiSettingsFromUi(clearApiKey = false) {
+      setAiSettingsBusy(true)
+      try {
+        const settings = await saveAiSettings({
+          mode: aiDraft.mode,
+          provider: aiDraft.provider,
+          endpoint: aiDraft.endpoint,
+          model: aiDraft.model,
+          apiKey: aiDraft.apiKey.trim() ? aiDraft.apiKey : undefined,
+          clearApiKey,
+          temperature: Number(aiDraft.temperature),
+          maxTokens: Number(aiDraft.maxTokens),
+          requestTimeoutMs: Number(aiDraft.requestTimeoutMs),
+        })
+        setAiSettings(settings)
+        setAiDraft((current) => ({ ...current, apiKey: '' }))
+        setAiSettingsError(clearApiKey ? 'AI API Key 已清除。' : '全局 AI API 设置已保存。')
+        await refreshBackendHealth()
+        await refreshAiApiPanel()
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'AI 设置保存失败'
+        setAiSettingsError(message)
+      } finally {
+        setAiSettingsBusy(false)
+      }
+    }
+
+    async function testAiConnectionFromUi() {
+      setAiSettingsBusy(true)
+      try {
+        const response = await testAiApiConnection()
+        setAiTestResult(response.result.message)
+        setAiSettings(response.settings)
+        setAiSettingsError('')
+        await refreshAiApiPanel()
+        await refreshBackendHealth()
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'AI 连接测试失败'
+        setAiTestResult('')
+        setAiSettingsError(message)
+      } finally {
+        setAiSettingsBusy(false)
+      }
+    }
+
+    async function generateAiPreviewFromUi() {
+      setAiSettingsBusy(true)
+      try {
+        const response = await generateAiText({
+          purpose: 'settings_panel_smoke_test',
+          messages: [
+            { role: 'system', content: '你是 B2B SEO OS 的全局 AI 调用测试助手。只需要验证调用链路是否可用。' },
+            { role: 'user', content: aiTestPrompt },
+          ],
+          temperature: Number(aiDraft.temperature),
+          maxTokens: Math.min(Number(aiDraft.maxTokens) || 800, 1200),
+        })
+        setAiGeneratedPreview(response.result.content)
+        setAiSettingsError('')
+        await refreshAiApiPanel()
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'AI 试生成失败'
+        setAiGeneratedPreview('')
+        setAiSettingsError(message)
+      } finally {
+        setAiSettingsBusy(false)
+      }
+    }
+
     return (
       <PageShell eyebrow="设置 / 系统状态" title="双 AI 层、安全边界和本地运行设置" description="这页明确区分程序内 AI 和外部执行层 AI，并展示哪些动作允许、禁止、需要人工确认。">
+        <Panel
+          title="全局 AI API 设置"
+          description="这是整个程序统一使用的 AI 调用能力。后续元提示词编译、Artifact 解析和上下文转化都只能走这套全局接口。"
+          action={<StatusBadge tone={aiSettings?.mode === 'real_api' ? (aiSettings.apiKeyConfigured ? 'green' : 'orange') : 'blue'}>{aiSettings?.mode === 'real_api' ? (aiSettings.apiKeyConfigured ? '真实 API 已配置' : '真实 API 缺少 Key') : '手动模拟模式'}</StatusBadge>}
+        >
+          <div className="grid gap-4 xl:grid-cols-[1fr_0.85fr]">
+            <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="text-sm font-medium text-gray-700">
+                  调用模式
+                  <select className={inputClass} value={aiDraft.mode} onChange={(event) => setAiDraft((current) => ({ ...current, mode: event.target.value as AiMode }))}>
+                    <option value="manual_mock">手动模拟模式</option>
+                    <option value="real_api">真实 API 模式</option>
+                  </select>
+                </label>
+                <label className="text-sm font-medium text-gray-700">
+                  Provider
+                  <select className={inputClass} value={aiDraft.provider} onChange={(event) => setAiDraft((current) => ({ ...current, provider: event.target.value as AiProvider }))}>
+                    <option value="openai_compatible">OpenAI-compatible</option>
+                    <option value="xiaomi_mimo">小米 Mimo</option>
+                    <option value="custom">自定义兼容接口</option>
+                  </select>
+                </label>
+                <label className="text-sm font-medium text-gray-700 md:col-span-2">
+                  API Endpoint
+                  <input className={inputClass} value={aiDraft.endpoint} onChange={(event) => setAiDraft((current) => ({ ...current, endpoint: event.target.value }))} placeholder="例如：https://api.example.com/v1/chat/completions" />
+                </label>
+                <label className="text-sm font-medium text-gray-700">
+                  模型名称
+                  <input className={inputClass} value={aiDraft.model} onChange={(event) => setAiDraft((current) => ({ ...current, model: event.target.value }))} placeholder="例如：gpt-4.1-mini / mimo-xxx" />
+                </label>
+                <label className="text-sm font-medium text-gray-700">
+                  API Key
+                  <input className={inputClass} type="password" value={aiDraft.apiKey} onChange={(event) => setAiDraft((current) => ({ ...current, apiKey: event.target.value }))} placeholder={aiSettings?.apiKeyConfigured ? '已配置，留空则保持不变' : '只保存到本地 runtime'} />
+                </label>
+                <label className="text-sm font-medium text-gray-700">
+                  Temperature
+                  <input className={inputClass} value={aiDraft.temperature} onChange={(event) => setAiDraft((current) => ({ ...current, temperature: event.target.value }))} />
+                </label>
+                <label className="text-sm font-medium text-gray-700">
+                  Max Tokens
+                  <input className={inputClass} value={aiDraft.maxTokens} onChange={(event) => setAiDraft((current) => ({ ...current, maxTokens: event.target.value }))} />
+                </label>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button icon={<Check className="h-4 w-4" />} onClick={() => void saveAiSettingsFromUi(false)}>{aiSettingsBusy ? '处理中...' : '保存 AI 设置'}</Button>
+                <Button tone="secondary" icon={<ShieldCheck className="h-4 w-4" />} onClick={() => void testAiConnectionFromUi()}>测试连接</Button>
+                <Button tone="secondary" icon={<RefreshCw className="h-4 w-4" />} onClick={() => void refreshAiApiPanel()}>刷新设置</Button>
+                <Button tone="danger" icon={<X className="h-4 w-4" />} onClick={() => void saveAiSettingsFromUi(true)}>清除 Key</Button>
+              </div>
+              {aiSettingsError && <p className="rounded-lg border border-danger-100 bg-danger-50 px-3 py-2 text-sm text-danger-700">{aiSettingsError}</p>}
+            </div>
+            <div className="space-y-4">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <p className="text-sm font-semibold text-gray-900">调用冒烟测试</p>
+                <p className="mt-1 text-sm leading-6 text-gray-600">用当前全局设置发起一次最小 AI 生成请求，确认后续元提示词编译可以复用。</p>
+                <textarea className="mt-3 min-h-24 w-full resize-y rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm leading-6 text-gray-900 outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100" value={aiTestPrompt} onChange={(event) => setAiTestPrompt(event.target.value)} />
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button size="sm" icon={<Sparkles className="h-4 w-4" />} onClick={() => void generateAiPreviewFromUi()}>试生成</Button>
+                  <Button size="sm" tone="secondary" icon={<RefreshCw className="h-4 w-4" />} onClick={() => { setAiGeneratedPreview(''); setAiTestResult('') }}>清空结果</Button>
+                </div>
+                {aiTestResult && <p className="mt-3 rounded-lg border border-success-100 bg-success-50 px-3 py-2 text-sm text-success-700">{aiTestResult}</p>}
+                {aiGeneratedPreview && <pre className="mt-3 max-h-56 overflow-auto rounded-lg bg-gray-950 p-3 text-xs leading-5 text-gray-100">{aiGeneratedPreview}</pre>}
+              </div>
+            </div>
+          </div>
+        </Panel>
+
+        <Panel title="AI 调用日志" description="只记录调用摘要和输出预览，不展示或返回 API Key。">
+          {aiRuns.length ? (
+            <SimpleTable
+              headers={['调用 ID', '用途', '模式', 'Provider', '模型', '状态', '耗时']}
+              rows={aiRuns.slice(0, 8).map((run) => [run.aiRunId, run.purpose, run.mode === 'real_api' ? '真实 API' : '手动模拟', run.provider, run.model, run.status === 'done' ? '完成' : run.status === 'failed' ? '失败' : '运行中', `${run.latencyMs}ms`])}
+              onRow={(index) => {
+                const run = aiRuns[index]
+                setDrawer({
+                  title: 'AI 调用详情',
+                  eyebrow: run.aiRunId,
+                  description: `${run.purpose} / ${run.mode === 'real_api' ? '真实 API' : '手动模拟'}`,
+                  content: (
+                    <div className="space-y-4">
+                      <InfoGrid items={[['Provider', run.provider], ['模型', run.model], ['状态', run.status], ['耗时', `${run.latencyMs}ms`], ['开始时间', formatDateTime(run.startedAt)], ['完成时间', run.completedAt ? formatDateTime(run.completedAt) : '未完成']]} />
+                      <ListBlock title="输入摘要" items={run.requestPreview.map((item) => `${item.role}: ${item.content}`)} />
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">输出预览</p>
+                        <pre className="mt-2 max-h-72 overflow-auto rounded-lg bg-gray-950 p-3 text-xs leading-5 text-gray-100">{run.outputPreview || run.errorMessage || '无输出'}</pre>
+                      </div>
+                    </div>
+                  ),
+                })
+              }}
+            />
+          ) : (
+            <EmptyState title="还没有 AI 调用日志" text="保存设置后可以先测试连接或试生成；后续元提示词编译也会写入这里。" />
+          )}
+        </Panel>
+
         <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
           <Panel
             title="产品硬边界"
@@ -2597,12 +2808,12 @@ function App() {
             </div>
           </Panel>
           <Panel title="系统检查" action={<Button onClick={() => { setSystemCheckDone(true); void refreshBackendHealth(); showToast('系统检查完成') }}>系统检查</Button>}>
-            <ProgressRows rows={[['只读模式', 100, '已开启'], ['本地后端', backendHealth?.ok ? 100 : 0, backendHealth?.ok ? '可用' : '未连接'], ['程序内 AI API', 40, '用于任务包生成和 Artifact 解析'], ['外部智能体执行', 100, '抓取 / 搜索 / 审计 / 调研'], ['WordPress 写入', 0, '关闭'], ['自动发布', 0, '关闭'], ['本地 JSON 存储', backendHealth?.ok ? 100 : 40, backendHealth?.ok ? '可写执行记录' : '待检测']]} />
+            <ProgressRows rows={[['只读模式', 100, '已开启'], ['本地后端', backendHealth?.ok ? 100 : 0, backendHealth?.ok ? '可用' : '未连接'], ['全局 AI API', aiSettings?.mode === 'real_api' ? (aiSettings.apiKeyConfigured ? 100 : 55) : 65, aiSettings?.mode === 'real_api' ? (aiSettings.apiKeyConfigured ? '真实 API 已配置' : '真实 API 缺少 Key') : '手动模拟模式'], ['外部智能体执行', 100, '抓取 / 搜索 / 审计 / 调研'], ['WordPress 写入', 0, '关闭'], ['自动发布', 0, '关闭'], ['本地 JSON 存储', backendHealth?.ok ? 100 : 40, backendHealth?.ok ? '可写执行记录' : '待检测']]} />
             {backendError && <p className="mt-3 rounded-lg border border-warning-100 bg-warning-50 px-3 py-2 text-sm text-warning-700">{backendError}</p>}
           </Panel>
         </div>
         <Panel title="本地数据与功能开关">
-          <SimpleTable headers={['模块', '当前状态', '说明']} rows={[['程序内 AI API', '可选辅助', '用于生成 AgentTaskPack 和解析回填 Artifact，不负责复杂执行'], ['外部执行层 AI', '用户自行执行', 'ChatGPT / Claude / OpenClaw 负责网页抓取、联网搜索、SEO 审计和调研'], ['WordPress 写入', '关闭', '不保存写入权限，不上传媒体，不自动发布'], ['本地后端', backendHealth?.ok ? '可用' : '未连接', '4310 API 提供提示词库、任务包、回填和解析记录'], ['提示词库', backendHealth ? `${backendHealth.promptCount} 个提示词` : '待检测', '展示契约、输入输出和人工审核点'], ['安全边界', '强制显示', '所有页面展示只读/不发布']]} />
+          <SimpleTable headers={['模块', '当前状态', '说明']} rows={[['全局 AI API', aiSettings?.mode === 'real_api' ? '真实 API 模式' : '手动模拟模式', '所有元提示词编译、Artifact 解析和上下文转化统一从这里调用'], ['API Key', aiSettings?.apiKeyConfigured ? '已本地保存' : '未保存', '只保存在 runtime/ai-settings.json，不进入前端代码和 Git'], ['外部执行层 AI', '用户自行执行', 'ChatGPT / Claude / OpenClaw 负责网页抓取、联网搜索、SEO 审计和调研'], ['WordPress 写入', '关闭', '不保存写入权限，不上传媒体，不自动发布'], ['本地后端', backendHealth?.ok ? '可用' : '未连接', '4310 API 提供提示词库、任务包、回填和解析记录'], ['提示词库', backendHealth ? `${backendHealth.promptCount} 个提示词` : '待检测', '展示契约、输入输出和人工审核点'], ['安全边界', '强制显示', '所有页面展示只读/不发布']]} />
         </Panel>
       </PageShell>
     )

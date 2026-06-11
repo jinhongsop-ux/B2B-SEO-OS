@@ -386,11 +386,64 @@ export interface PromptDefinition {
 export interface BackendHealth {
   ok: boolean;
   service: string;
-  mode: 'manual_mock';
+  mode: AiMode;
   aiApiEnabled: boolean;
+  aiProvider: AiProvider;
+  aiModel: string;
+  aiApiKeyConfigured: boolean;
   wordpressWritesEnabled: boolean;
   runtimeDir: string;
   promptCount: number;
+}
+
+export type AiMode = 'manual_mock' | 'real_api'
+export type AiProvider = 'openai_compatible' | 'xiaomi_mimo' | 'custom'
+
+export interface AiSettings {
+  mode: AiMode;
+  provider: AiProvider;
+  endpoint: string;
+  model: string;
+  temperature: number;
+  maxTokens: number;
+  requestTimeoutMs: number;
+  apiKeyConfigured: boolean;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface AiConnectionTestResult {
+  ok: boolean;
+  mode: AiMode;
+  provider: AiProvider;
+  model: string;
+  message: string;
+  latencyMs: number;
+  aiRunId?: string;
+}
+
+export interface AiGenerateResult {
+  aiRunId: string;
+  content: string;
+  mode: AiMode;
+  provider: AiProvider;
+  model: string;
+}
+
+export interface AiCallRun {
+  aiRunId: string;
+  purpose: string;
+  mode: AiMode;
+  provider: AiProvider;
+  model: string;
+  status: 'running' | 'done' | 'failed';
+  inputMessageCount: number;
+  requestPreview: Array<{ role: string; content: string }>;
+  outputPreview: string;
+  errorMessage: string;
+  startedAt: string;
+  completedAt: string | null;
+  latencyMs: number;
 }
 
 export interface PromptInputEnvelope {
