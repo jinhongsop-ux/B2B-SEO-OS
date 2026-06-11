@@ -2578,6 +2578,7 @@ function App() {
     const [aiRuns, setAiRuns] = useState<AiCallRun[]>([])
     const [aiSettingsBusy, setAiSettingsBusy] = useState(false)
     const [aiSettingsError, setAiSettingsError] = useState('')
+    const [aiSettingsNotice, setAiSettingsNotice] = useState('')
     const [aiTestResult, setAiTestResult] = useState('')
     const [aiTestPrompt, setAiTestPrompt] = useState('请用一句话说明当前 AI API 已经可以被 B2B SEO OS 调用。')
     const [aiGeneratedPreview, setAiGeneratedPreview] = useState('')
@@ -2614,7 +2615,6 @@ function App() {
           requestTimeoutMs: String(settings.requestTimeoutMs),
         })
         setAiRuns(runs)
-        setAiSettingsError('')
       } catch (error) {
         setAiSettingsError(error instanceof Error ? error.message : 'AI 设置读取失败')
       }
@@ -2636,13 +2636,14 @@ function App() {
         })
         setAiSettings(settings)
         setAiDraft((current) => ({ ...current, apiKey: '' }))
-        setAiSettingsError(clearApiKey ? 'AI API Key 已清除。' : '全局 AI API 设置已保存。')
-        await refreshBackendHealth()
-        await refreshAiApiPanel()
+        setAiSettingsNotice(clearApiKey ? 'AI API Key 已清除。' : '全局 AI API 设置已保存。')
+        setAiSettingsError('')
+        setAiSettingsBusy(false)
+        void refreshBackendHealth()
+        void refreshAiApiPanel()
       } catch (error) {
         const message = error instanceof Error ? error.message : 'AI 设置保存失败'
         setAiSettingsError(message)
-      } finally {
         setAiSettingsBusy(false)
       }
     }
@@ -2654,12 +2655,14 @@ function App() {
         setAiTestResult(response.result.message)
         setAiSettings(response.settings)
         setAiSettingsError('')
+        setAiSettingsNotice('AI 连接测试通过。')
         await refreshAiApiPanel()
         await refreshBackendHealth()
       } catch (error) {
         const message = error instanceof Error ? error.message : 'AI 连接测试失败'
         setAiTestResult('')
         setAiSettingsError(message)
+        setAiSettingsNotice('')
       } finally {
         setAiSettingsBusy(false)
       }
@@ -2679,11 +2682,13 @@ function App() {
         })
         setAiGeneratedPreview(response.result.content)
         setAiSettingsError('')
+        setAiSettingsNotice('AI 试生成完成。')
         await refreshAiApiPanel()
       } catch (error) {
         const message = error instanceof Error ? error.message : 'AI 试生成失败'
         setAiGeneratedPreview('')
         setAiSettingsError(message)
+        setAiSettingsNotice('')
       } finally {
         setAiSettingsBusy(false)
       }
@@ -2741,6 +2746,7 @@ function App() {
                 <Button tone="secondary" icon={<RefreshCw className="h-4 w-4" />} onClick={() => void refreshAiApiPanel()}>刷新设置</Button>
                 <Button tone="danger" icon={<X className="h-4 w-4" />} onClick={() => void saveAiSettingsFromUi(true)}>清除 Key</Button>
               </div>
+              {aiSettingsNotice && <p className="rounded-lg border border-success-100 bg-success-50 px-3 py-2 text-sm text-success-700">{aiSettingsNotice}</p>}
               {aiSettingsError && <p className="rounded-lg border border-danger-100 bg-danger-50 px-3 py-2 text-sm text-danger-700">{aiSettingsError}</p>}
             </div>
             <div className="space-y-4">

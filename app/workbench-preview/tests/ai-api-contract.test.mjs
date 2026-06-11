@@ -13,7 +13,8 @@ const serverFile = path.join(appRoot, 'server', 'api-server.mjs')
 const port = Number(process.env.TEST_AI_API_PORT || 4314)
 const fakeProviderPort = Number(process.env.TEST_FAKE_AI_PROVIDER_PORT || 4324)
 const baseUrl = `http://127.0.0.1:${port}`
-const fakeProviderUrl = `http://127.0.0.1:${fakeProviderPort}/v1/chat/completions`
+const fakeProviderBaseUrl = `http://127.0.0.1:${fakeProviderPort}/v1`
+const fakeProviderUrl = `${fakeProviderBaseUrl}/chat/completions`
 const runtimeDir = await mkdtemp(path.join(os.tmpdir(), 'b2b-seo-os-ai-api-'))
 
 let server
@@ -70,7 +71,7 @@ async function main() {
   const saved = await postJson('/api/ai/settings', {
     mode: 'real_api',
     provider: 'xiaomi_mimo',
-    endpoint: fakeProviderUrl,
+    endpoint: fakeProviderBaseUrl,
     model: 'mimo-test-model',
     apiKey: 'sk-local-secret-for-test',
     temperature: 0.35,
@@ -117,6 +118,7 @@ async function main() {
   const persisted = JSON.parse(await readFile(path.join(runtimeDir, 'ai-settings.json'), 'utf8'))
   assert.equal(persisted.settings.apiKey, 'sk-local-secret-for-test')
   assert.equal(persisted.settings.mode, 'real_api')
+  assert.equal(persisted.settings.endpoint, fakeProviderBaseUrl)
 
   const badJson = await rawPost('/api/ai/settings', '{')
   assert.equal(badJson.status, 400)

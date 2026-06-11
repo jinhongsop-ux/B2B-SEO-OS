@@ -32,6 +32,8 @@ def main() -> None:
         with page.expect_response(lambda response: "/api/ai/settings" in response.url and response.status == 200):
             page.get_by_role("button", name="保存 AI 设置").click()
         expect(page.get_by_text("手动模拟模式").first).to_be_visible()
+        expect(page.get_by_role("button", name="保存 AI 设置")).to_be_visible()
+        expect(page.get_by_text("全局 AI API 设置已保存。")).to_be_visible()
 
         with page.expect_response(lambda response: "/api/ai/test-connection" in response.url and response.status == 200):
             page.get_by_role("button", name="测试连接").click()

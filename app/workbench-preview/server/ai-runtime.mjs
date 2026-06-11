@@ -277,7 +277,7 @@ async function callOpenAiCompatibleApi(settings, input) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), settings.requestTimeoutMs)
   try {
-    const response = await fetch(settings.endpoint, {
+    const response = await fetch(resolveChatCompletionsEndpoint(settings.endpoint), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -324,6 +324,13 @@ function ensureRealApiReady(settings) {
   if (!settings.apiKey) {
     throw new AiRuntimeError(400, 'ai_settings_incomplete', '请先配置 AI API Key。')
   }
+}
+
+function resolveChatCompletionsEndpoint(endpoint) {
+  const normalized = typeof endpoint === 'string' ? endpoint.trim().replace(/\/+$/, '') : ''
+  if (!normalized) return normalized
+  if (/\/chat\/completions$/i.test(normalized)) return normalized
+  return `${normalized}/chat/completions`
 }
 
 function normalizeSettings(input) {
