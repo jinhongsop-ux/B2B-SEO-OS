@@ -77,9 +77,74 @@ export interface SiteReadSnapshot extends WordPressSnapshot {
   snapshotId: string;
   projectId: string;
   domain: string;
-  mode: 'local_mock_read_only';
+  mode: 'local_mock_read_only' | 'external_agent_artifact';
   pages: WpPage[];
   humanReviewItems: string[];
+  sourceArtifactId?: string;
+}
+
+export type AgentTaskPackStatus = 'draft' | 'ready_to_copy' | 'copied' | 'artifact_returned' | 'ingested' | 'archived'
+export type ArtifactStatus = 'submitted' | 'parsing' | 'parsed' | 'parse_failed' | 'reviewed' | 'rejected'
+export type IngestionRunStatus = 'queued' | 'running' | 'waiting_review' | 'approved' | 'rejected' | 'failed'
+
+export interface AgentTaskPack {
+  taskPackId: string;
+  workflowStepId: string;
+  taskType: string;
+  targetAgent: string;
+  sourceInputs: Record<string, unknown>;
+  projectContextSnapshot: Record<string, unknown>;
+  promptMarkdown: string;
+  expectedArtifactSchema: {
+    schemaName: string;
+    requiredFields: string[];
+    format: string;
+  };
+  forbiddenActions: string[];
+  humanChecklist: string[];
+  status: AgentTaskPackStatus;
+  createdAt: string;
+}
+
+export interface ExternalArtifact {
+  artifactId: string;
+  taskPackId: string;
+  workflowStepId: string;
+  format: 'json' | 'markdown' | 'csv' | 'mixed_text';
+  rawContent: string;
+  sourceAgent: string;
+  status: ArtifactStatus;
+  submittedAt: string;
+}
+
+export interface IngestionRun {
+  ingestionRunId: string;
+  artifactId: string;
+  taskPackId: string;
+  workflowStepId: string;
+  parserPromptId: string;
+  status: IngestionRunStatus;
+  parsedObjects: {
+    siteReadSnapshot?: SiteReadSnapshot;
+    [key: string]: unknown;
+  };
+  validationResult: {
+    valid: boolean;
+    qualityScore: number;
+    missingFields: string[];
+    warnings: string[];
+  };
+  humanReviewItems: string[];
+  canAdvance: boolean;
+  writePlan: Array<{ target: string; action: string; summary: string }>;
+  reviewDecision: null | {
+    decision: 'approved' | 'rejected';
+    reviewer: string;
+    notes: string;
+    reviewedAt: string;
+  };
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type WorkflowStepStatus = 'locked' | 'ready' | 'running' | 'waiting_review' | 'done' | 'blocked'
@@ -135,9 +200,12 @@ export interface WorkspaceState {
     postCount: number;
     productCount: number;
     mediaCount: number;
-    mode: 'local_mock_read_only';
+    mode: 'local_mock_read_only' | 'external_agent_artifact';
   }>;
   artifacts: WorkspaceArtifact[];
+  taskPacks: AgentTaskPack[];
+  externalArtifacts: ExternalArtifact[];
+  ingestionRuns: IngestionRun[];
 }
 
 // ===== Audit Finding =====

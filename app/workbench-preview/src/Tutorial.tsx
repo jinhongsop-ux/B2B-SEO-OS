@@ -48,7 +48,7 @@ const toc = [
 
 const workspaceLinks = [
   { href: '/overview', label: '项目总览', icon: Home, description: '看项目状态、风险、待办和下一步。' },
-  { href: '/project-center', label: '项目中心 / 数据源', icon: Database, description: '确认项目资料、WordPress 读取结果和数据来源。' },
+  { href: '/project-center', label: '项目中心 / 数据源', icon: Database, description: '填写项目资料，生成站点读取任务包，回填并审核站点快照。' },
   { href: '/audit', label: 'SEO 诊断', icon: Gauge, description: '查看前台问题、风险级别、证据和修复建议。' },
   { href: '/keywords', label: '页面与关键词', icon: Map, description: '导入、清洗、审核、分配关键词。' },
   { href: '/trust', label: '供应商可信度', icon: ShieldCheck, description: '管理公司能力、证书、工厂、质检等可信证据。' },
@@ -56,7 +56,7 @@ const workspaceLinks = [
   { href: '/tasks', label: '任务中心', icon: ClipboardList, description: '把诊断、关键词、内容事项变成可执行任务。' },
   { href: '/assets', label: '资料与素材库', icon: Library, description: '整理图片、PDF、证书、规格表和可用素材。' },
   { href: '/delivery', label: '交付中心', icon: FileArchive, description: '导出页面修复包、任务包和内容交接包。' },
-  { href: '/ai-workbench', label: 'AI 工作台', icon: Sparkles, description: '查看提示词契约、输入输出和人工审核点。' },
+  { href: '/ai-workbench', label: '智能体任务中心', icon: Sparkles, description: '查看任务包、外部 AI 回填、解析校验和人工审核点。' },
   { href: '/settings', label: '设置 / 系统状态', icon: Settings, description: '确认只读模式、连接状态和本地安全边界。' },
 ]
 
@@ -68,10 +68,10 @@ const firstRunSteps = [
     linkLabel: '查看项目总览',
   },
   {
-    title: '读取网站，建立当前网站快照',
-    body: '读取页面、文章、产品、分类、媒体、SEO 字段、表单和站点结构。教程里提到的所有诊断和修复，都从这个快照开始。',
+    title: '生成站点读取任务包，回填网站快照',
+    body: '正确顺序是：填写项目档案 → 生成站点读取 AgentTaskPack → 复制给外部智能体 → 回填 site_read_snapshot_v1 → 程序内 AI 解析校验 → 人工审核入库。教程里提到的所有诊断和修复，都从这个快照开始。',
     link: '/project-center',
-    linkLabel: '进入数据源',
+    linkLabel: '进入站点接入',
   },
   {
     title: '先做网站诊断，再做关键词',
@@ -158,8 +158,8 @@ const workspaceGuide = [
     href: '/project-center',
     icon: Database,
     tone: 'gray' as const,
-    useFor: '管理项目资料和 WordPress 读取快照。',
-    userDoes: ['核对网站基本信息、行业、市场和产品线', '查看页面、文章、产品、媒体等读取结果', '确认数据来源是否可信、是否需要重新读取'],
+    useFor: '管理项目资料、站点读取任务包、外部智能体回填和正式站点快照。',
+    userDoes: ['核对网站基本信息、行业、市场和产品线', '生成 AgentTaskPack 并复制给外部智能体执行', '回填 Artifact，经过程序内 AI 解析和人工审核后入库'],
   },
   {
     title: 'SEO 诊断',
@@ -218,12 +218,12 @@ const workspaceGuide = [
     userDoes: ['导出页面修复包', '导出关键词审核和任务清单', '导出内容生产交接包'],
   },
   {
-    title: 'AI 工作台',
+    title: '智能体任务中心',
     href: '/ai-workbench',
     icon: Sparkles,
     tone: 'purple' as const,
-    useFor: '理解 AI 在做什么。',
-    userDoes: ['查看 Prompt 输入输出契约', '确认 AI 只建议、不自动发布', '定位失败原因和人工审核点'],
+    useFor: '管理任务包、外部回填、程序内 AI 解析和人工审核记录。',
+    userDoes: ['查看 AgentTaskPack 和输出契约', '确认外部智能体只执行复杂任务、不写站点', '定位回填解析失败原因和人工审核点'],
   },
   {
     title: '设置 / 系统状态',
@@ -231,7 +231,7 @@ const workspaceGuide = [
     icon: Settings,
     tone: 'gray' as const,
     useFor: '确认系统安全和运行状态。',
-    userDoes: ['检查只读模式', '查看 AI 调用和 WordPress 写入是否关闭', '确认导出和本地数据状态'],
+    userDoes: ['检查只读模式', '确认程序内 AI 与外部执行层 AI 的分工', '查看 WordPress 写入和自动发布是否关闭'],
   },
 ]
 
@@ -255,7 +255,7 @@ const faq = [
   },
   {
     question: 'AI 生成的内容可以直接发布吗？',
-    answer: '当前产品原则是不自动发布 WordPress。AI 输出要先进入人工审核，尤其是涉及证书、产能、质保、测试标准、交期等事实。',
+    answer: '不能。外部智能体输出要先作为 Artifact 回填，经过程序内 AI 解析校验和人工审核，尤其是涉及证书、产能、质保、测试标准、交期等事实。',
   },
   {
     question: '未使用有效词是不是浪费了？',
@@ -268,7 +268,9 @@ const faq = [
 ]
 
 const glossary = [
-  ['WordPress 快照', '系统读取网站后形成的页面、文章、产品、媒体、SEO 字段和表单结构记录。'],
+  ['AgentTaskPack', '程序内 AI 根据项目资料和元提示词生成的外部智能体执行任务包。'],
+  ['Artifact', '外部智能体执行后回填到系统的 JSON、Markdown、CSV 或混合文本结果。'],
+  ['WordPress 快照', '外部智能体读取公开网站后回填，并经程序内 AI 解析校验与人工审核形成的页面、文章、产品、SEO 字段和表单结构记录。'],
   ['只读模式', '系统可以读取和分析网站，但不会自动写入或发布内容。'],
   ['B2B 上下文', '公司类型、产品线、市场、客户、能力、证据、事实边界等背景信息。'],
   ['证据库', '能支撑页面内容的资料，例如证书、工厂照片、产品目录、规格表、检测报告。'],
@@ -314,7 +316,7 @@ const sourceMap = [
   ['关键词导入清洗审核分配流程', '对应关键词状态、CSV 导入、人工审核和页面分配教程。'],
   ['页面修复任务与优化包规范', '对应页面修复包构成和不可写内容。'],
   ['内容运营与 Content Engine 对接规范', '对应未使用有效词、聚类和内容交接教程。'],
-  ['AI 提示词输入输出契约', '对应 AI 工作台、人工审核点和失败处理。'],
+  ['AI 提示词输入输出契约', '对应智能体任务中心、任务包、Artifact、人工审核点和失败处理。'],
   ['验收标准与测试清单', '对应本教程的验收清单和验证口径。'],
   ['本地数据安全与权限边界', '对应只读模式、导出包和敏感信息边界。'],
 ]
@@ -403,20 +405,20 @@ function Tutorial() {
               <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
                 <div className="space-y-4">
                   <p>
-                    B2B SEO OS 是一个站内 SEO 运营工作台。它面向已经有 WordPress 网站的 B2B 外贸公司，先读取现有网站，再诊断问题、建立关键词数据库、整理公司和产品证据，最后生成页面修复任务和交付包。
+                    B2B SEO OS 是一个面向外部智能体执行的站内 SEO 工作流系统。它面向已经有 WordPress 网站的 B2B 外贸公司，把项目资料编译成可执行任务包，让 ChatGPT、Claude、OpenClaw 等外部智能体完成抓取、搜索、审计和调研，再把回填结果解析、校验、审核、入库，最后推进关键词、页面修复、内容交接和交付。
                   </p>
                   <Callout tone="blue" title="一句话理解">
-                    它不是写文章工具，也不是网站编辑器。它更像一个 SEO 项目经理，把“网站有什么、缺什么、关键词该去哪、页面怎么修、交付给谁”这几件事串起来。
+                    它不是写文章工具，也不是网站编辑器，更不是全自动 AI 爬虫。它更像一个懂 SEO 的项目经理，把“输入什么、交给哪个智能体、回填什么格式、是否足够、能不能进入下一步”这几件事管起来。
                   </Callout>
                   <div className="grid gap-3 md:grid-cols-2">
-                    <CheckItem title="它会做" items={['读取 WordPress 网站结构', '诊断站内 SEO 问题', '清洗和审核关键词', '生成页面修复包', '整理内容交接包']} />
-                    <CheckItem title="它不会做" items={['自动发布 WordPress', '购买外链', '替你确认供应商真假', '管理 CRM 客户', '强行把词塞进页面']} negative />
+                    <CheckItem title="它会做" items={['生成外部智能体任务包', '规定回填 JSON / Markdown / CSV 格式', '解析和校验 Artifact', '保存结构化项目数据', '推动人工审核和下一阶段']} />
+                    <CheckItem title="它不会做" items={['自动发布 WordPress', '自己完成复杂网页抓取', '购买外链', '替你确认供应商真假', '强行把词塞进页面']} negative />
                   </div>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                   <p className="text-sm font-semibold text-gray-950">系统主线</p>
                   <div className="mt-4 space-y-3">
-                    {['读取网站', '诊断问题', '建立证据', '清洗关键词', '人工审核', '页面修复', '内容交接', '导出复盘'].map((item, index) => (
+                    {['生成任务包', '外部执行', '回填 Artifact', 'AI 解析校验', '人工审核入库', '诊断与关键词', '页面修复', '内容交接', '导出复盘'].map((item, index) => (
                       <div key={item} className="flex items-center gap-3">
                         <span className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-xs font-semibold text-primary-700 ring-1 ring-gray-200">{index + 1}</span>
                         <span className="text-sm text-gray-700">{item}</span>
@@ -601,8 +603,8 @@ function Tutorial() {
                     <h3 className="text-base font-semibold text-gray-950">当前原型默认边界</h3>
                   </div>
                   <ul className="mt-3 space-y-2 text-sm leading-6 text-gray-600">
-                    <li>只读读取 WordPress，不自动写入。</li>
-                    <li>AI 输出必须可查看、可追溯、可人工确认。</li>
+                    <li>外部智能体负责抓取、搜索、审计和调研；程序内 AI 负责生成任务包和解析回填。</li>
+                    <li>Artifact 必须可查看、可追溯、可人工确认。</li>
                     <li>导出包不应包含敏感凭据。</li>
                     <li>涉及事实承诺的内容必须有证据支撑。</li>
                   </ul>

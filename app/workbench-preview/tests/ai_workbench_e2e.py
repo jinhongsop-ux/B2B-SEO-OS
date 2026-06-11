@@ -1,5 +1,4 @@
 import os
-import re
 
 from playwright.sync_api import expect, sync_playwright
 
@@ -18,41 +17,48 @@ def main() -> None:
 
         page.goto(f"{ROOT_URL}/ai-workbench")
         page.wait_for_load_state("networkidle")
-        expect(page.get_by_role("heading", name=re.compile("任务型 AI"))).to_be_visible()
-        expect(page.get_by_text("提示词库")).to_be_visible()
-        expect(page.get_by_text("关键词 AI 清洗提示词")).to_be_visible()
-        expect(page.get_by_text("本地后端")).to_be_visible()
+        expect(page.get_by_role("heading", name="任务包、Artifact 与回填解析记录")).to_be_visible()
+        expect(page.get_by_text("智能体任务中心模块")).to_be_visible()
+        expect(page.get_by_text("程序内 AI").first).to_be_visible()
+        expect(page.get_by_text("外部智能体").first).to_be_visible()
+        expect(page.get_by_text("WordPress 写入").first).to_be_visible()
         expect(page.get_by_text("可用").first).to_be_visible()
 
+        page.get_by_role("button", name="提示词库").click()
+        expect(page.get_by_text("网站读取").first).to_be_visible()
+        expect(page.get_by_text("禁止").first).to_be_visible()
+
         page.get_by_role("button", name="新建执行").click()
-        expect(page.locator("textarea")).to_be_visible()
+        expect(page.get_by_text("用户补充指令")).to_be_visible()
         expect(page.get_by_role("button", name="生成手动提示词包")).to_be_visible()
-        page.get_by_role("button", name="生成手动提示词包").click()
+        with page.expect_response(lambda response: "/api/agent-runs" in response.url and response.status == 201):
+            page.get_by_role("button", name="生成手动提示词包").click()
+
         page.get_by_role("button", name="执行记录").click()
         run_row = page.locator("tbody tr").filter(has_text="run_").first
         expect(run_row).to_be_visible()
-
         run_row.click()
         dialog = page.get_by_role("dialog")
         expect(dialog).to_be_visible()
         expect(dialog.get_by_text("手动提示词包", exact=True)).to_be_visible()
         expect(dialog.get_by_text("模拟输出字段")).to_be_visible()
-        page.get_by_role("button", name="复制提示词").click()
         page.get_by_label("关闭详情抽屉").last.click()
 
         page.get_by_role("button", name="人工审核").click()
         expect(page.get_by_role("button", name="批准输出").first).to_be_visible()
-        page.get_by_role("button", name="批准输出").first.click()
+        with page.expect_response(lambda response: "/review" in response.url and response.status == 200):
+            page.get_by_role("button", name="批准输出").first.click()
         page.get_by_role("button", name="执行记录").click()
         expect(page.get_by_text("已完成").first).to_be_visible()
 
         page.goto(f"{ROOT_URL}/settings")
         page.wait_for_load_state("networkidle")
-        expect(page.get_by_text("本地后端").first).to_be_visible()
-        expect(page.get_by_text("4310 API 提供提示词库和执行记录")).to_be_visible()
-        expect(page.get_by_text("手动 / 模拟模式，不调用真实 API")).to_be_visible()
+        expect(page.get_by_role("heading", name="双 AI 层、安全边界和本地运行设置")).to_be_visible()
+        expect(page.get_by_text("程序内 AI 只负责任务包生成和 Artifact 解析")).to_be_visible()
+        expect(page.get_by_text("外部执行层 AI").first).to_be_visible()
+        expect(page.get_by_text("WordPress 写入").first).to_be_visible()
 
-        for route in ["/overview", "/keywords", "/tasks", "/delivery", "/tutorial"]:
+        for route in ["/overview", "/project-center", "/keywords", "/tasks", "/delivery", "/tutorial"]:
             page.goto(f"{ROOT_URL}{route}")
             page.wait_for_load_state("networkidle")
             expect(page.locator("main")).to_be_visible()

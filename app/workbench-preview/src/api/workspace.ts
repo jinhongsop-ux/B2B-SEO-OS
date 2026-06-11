@@ -1,4 +1,4 @@
-import type { ProjectProfile, SiteReadSnapshot, WorkflowState, WorkspaceState } from '../types'
+import type { AgentTaskPack, ExternalArtifact, IngestionRun, ProjectProfile, SiteReadSnapshot, WorkflowState, WorkspaceState } from '../types'
 
 type ApiErrorBody = { error?: { code: string; message: string } }
 
@@ -57,4 +57,46 @@ export async function createSiteReadSnapshot() {
 
 export async function fetchLatestSiteReadSnapshot() {
   return requestJson<{ snapshot: SiteReadSnapshot }>('/api/site-read-snapshots/latest')
+}
+
+export async function generateTaskPack(input: {
+  workflowStepId: string;
+  taskType: string;
+  targetAgent: string;
+  userInput?: string;
+}) {
+  return requestJson<WorkspaceResponse & { taskPack: AgentTaskPack }>('/api/task-packs/generate', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export async function submitArtifact(input: {
+  taskPackId: string;
+  sourceAgent: string;
+  format: 'json' | 'markdown' | 'csv' | 'mixed_text';
+  rawContent: string;
+}) {
+  return requestJson<WorkspaceResponse & { artifact: ExternalArtifact }>('/api/artifacts', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export async function runArtifactIngestion(input: { artifactId: string }) {
+  return requestJson<WorkspaceResponse & { ingestionRun: IngestionRun }>('/api/ingestion-runs', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export async function reviewIngestionRun(ingestionRunId: string, input: {
+  decision: 'approved' | 'rejected';
+  reviewer: string;
+  notes: string;
+}) {
+  return requestJson<WorkspaceResponse & { ingestionRun: IngestionRun }>(`/api/ingestion-runs/${encodeURIComponent(ingestionRunId)}/review`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
 }

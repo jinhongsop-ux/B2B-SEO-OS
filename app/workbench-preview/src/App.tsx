@@ -59,7 +59,11 @@ import {
 import {
   createSiteReadSnapshot,
   fetchWorkspace,
+  generateTaskPack,
+  reviewIngestionRun,
+  runArtifactIngestion,
   saveProjectProfile,
+  submitArtifact,
   type ProjectProfileInput,
 } from './api/workspace'
 import { mockPages } from './mock/pages'
@@ -80,7 +84,7 @@ import {
   workflowSteps,
 } from './mock/workbench'
 import Tutorial from './Tutorial'
-import type { AgentRun, AuditFinding, BackendHealth, HumanReviewDecision, Keyword, PromptDefinition, Task, WpPage, WorkflowState, WorkspaceState } from './types'
+import type { AgentRun, AgentTaskPack, AuditFinding, BackendHealth, ExternalArtifact, HumanReviewDecision, IngestionRun, Keyword, PromptDefinition, Task, WpPage, WorkflowState, WorkspaceState } from './types'
 
 type Tone = 'default' | 'blue' | 'green' | 'orange' | 'red' | 'purple' | 'gray'
 type DrawerAction = { label: string; tone?: Tone; onClick?: () => void; icon?: ReactNode }
@@ -139,7 +143,7 @@ const routeGroups = [
   {
     title: '五、AI 与系统',
     items: [
-      { path: '/ai-workbench', label: 'AI 工作台', icon: Bot },
+      { path: '/ai-workbench', label: '智能体任务中心', icon: Bot },
       { path: '/settings', label: '设置 / 系统状态', icon: Settings },
     ],
   },
@@ -189,7 +193,7 @@ const navigationGroups = [
   {
     title: '五、AI 与系统',
     items: [
-      { path: '/ai-workbench', label: 'AI 工作台', icon: Bot },
+      { path: '/ai-workbench', label: '智能体任务中心', icon: Bot },
       { path: '/settings', label: '设置 / 系统状态', icon: Settings },
     ],
   },
@@ -487,6 +491,8 @@ function App() {
     targetCustomers: ['采购经理', 'OEM 工程团队'],
     primaryConversionGoal: '提交询盘',
   })
+  const [siteReadAgent, setSiteReadAgent] = useState('openclaw')
+  const [siteReadArtifactText, setSiteReadArtifactText] = useState('')
 
   const metrics = useMemo(() => {
     const pending = keywords.filter((item) => item.status === 'pending_review').length
@@ -512,6 +518,13 @@ function App() {
 
   const selectedReviewKeyword = keywords.find((keyword) => keyword.keywordId === selectedReviewKeywordId) ?? keywords[0]
   const selectedAllocationPage = mockPages.find((page) => page.pageId === selectedAllocationPageId) ?? mockPages[0]
+  const siteReadTaskPack = workspace?.taskPacks?.find((taskPack) => taskPack.workflowStepId === 'site_connection_reading' && taskPack.taskType === 'site_read') ?? null
+  const siteReadArtifact = siteReadTaskPack
+    ? workspace?.externalArtifacts?.find((artifact) => artifact.taskPackId === siteReadTaskPack.taskPackId) ?? null
+    : null
+  const siteReadIngestion = siteReadArtifact
+    ? workspace?.ingestionRuns?.find((run) => run.artifactId === siteReadArtifact.artifactId) ?? null
+    : null
 
   useEffect(() => {
     void refreshWorkspace()
@@ -580,6 +593,146 @@ function App() {
     } finally {
       setWorkspaceBusy(false)
     }
+  }
+
+  async function createSiteReadTaskPackFromUi() {
+    setWorkspaceBusy(true)
+    try {
+      const response = await generateTaskPack({
+        workflowStepId: 'site_connection_reading',
+        taskType: 'site_read',
+        targetAgent: siteReadAgent,
+        userInput: '请读取公开前台页面，并输出 site_read_snapshot_v1 JSON。',
+      })
+      setWorkspace(response.workspace)
+      setWorkflow(response.workflow)
+      setWorkspaceError('')
+      showToast('站点读取任务包已生成。')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '生成任务包失败。'
+      setWorkspaceError(message)
+      showToast(message, 'red')
+    } finally {
+      setWorkspaceBusy(false)
+    }
+  }
+
+  async function submitSiteReadArtifactFromUi() {
+    if (!siteReadTaskPack) {
+      showToast('请先生成站点读取任务包。', 'orange')
+      return
+    }
+    setWorkspaceBusy(true)
+    try {
+      const response = await submitArtifact({
+        taskPackId: siteReadTaskPack.taskPackId,
+        sourceAgent: siteReadAgent,
+        format: 'json',
+        rawContent: siteReadArtifactText,
+      })
+      setWorkspace(response.workspace)
+      setWorkflow(response.workflow)
+      setWorkspaceError('')
+      showToast('外部智能体回填已保存。')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '保存回填失败。'
+      setWorkspaceError(message)
+      showToast(message, 'red')
+    } finally {
+      setWorkspaceBusy(false)
+    }
+  }
+
+  async function runSiteReadIngestionFromUi() {
+    if (!siteReadArtifact) {
+      showToast('请先回填外部智能体输出。', 'orange')
+      return
+    }
+    setWorkspaceBusy(true)
+    try {
+      const response = await runArtifactIngestion({ artifactId: siteReadArtifact.artifactId })
+      setWorkspace(response.workspace)
+      setWorkflow(response.workflow)
+      setWorkspaceError('')
+      showToast('程序内 AI 已完成回填解析校验。')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '解析校验失败。'
+      setWorkspaceError(message)
+      showToast(message, 'red')
+    } finally {
+      setWorkspaceBusy(false)
+    }
+  }
+
+  async function reviewSiteReadIngestionFromUi(decision: 'approved' | 'rejected') {
+    if (!siteReadIngestion) {
+      showToast('请先完成 AI 解析校验。', 'orange')
+      return
+    }
+    setWorkspaceBusy(true)
+    try {
+      const response = await reviewIngestionRun(siteReadIngestion.ingestionRunId, {
+        decision,
+        reviewer: 'operator',
+        notes: decision === 'approved' ? '站点读取结果已人工确认，可以进入网站现状审计。' : '站点读取结果暂不采用，保留原始回填记录。',
+      })
+      setWorkspace(response.workspace)
+      setWorkflow(response.workflow)
+      if (response.workspace.latestSnapshot?.snapshotAt) {
+        setReadTimestamp(formatDateTime(response.workspace.latestSnapshot.snapshotAt))
+      }
+      setWorkspaceError('')
+      showToast(decision === 'approved' ? '已批准入库，流程进入网站现状审计。' : '已驳回回填结果。', decision === 'approved' ? 'green' : 'orange')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '人工审核操作失败。'
+      setWorkspaceError(message)
+      showToast(message, 'red')
+    } finally {
+      setWorkspaceBusy(false)
+    }
+  }
+
+  async function copySiteReadTaskPackFromUi() {
+    if (!siteReadTaskPack) {
+      showToast('请先生成站点读取任务包。', 'orange')
+      return
+    }
+    await navigator.clipboard?.writeText(siteReadTaskPack.promptMarkdown)
+    showToast('任务包已复制，可以粘贴给外部智能体。')
+  }
+
+  function fillSampleSiteReadArtifact() {
+    setSiteReadArtifactText(JSON.stringify({
+      schemaVersion: 'site_read_snapshot_v1',
+      domain: workspace?.project?.domain || 'https://example-b2b.com',
+      pages: [
+        {
+          url: '/',
+          title: workspace?.project?.company || '测试工业有限公司',
+          pageType: '首页',
+          type: 'page',
+          h1: workspace?.project?.company || '测试工业有限公司',
+          metaDescription: '工业零部件供应商首页，包含产品、能力和询盘入口。',
+          wordCount: 820,
+          formsDetected: ['RFQ Form'],
+        },
+        {
+          url: '/products/custom-metal-parts/',
+          title: 'Custom Metal Parts',
+          pageType: '产品线页面',
+          type: 'page',
+          h1: 'Custom Metal Parts',
+          metaDescription: '定制金属零部件产品页面。',
+          wordCount: 640,
+          formsDetected: [],
+        },
+      ],
+      menus: ['Main Menu'],
+      forms: ['RFQ Form'],
+      seoFields: ['SEO Title', 'Meta Description', 'H1'],
+      anomalies: ['部分图片 ALT 为空', '产品页 CTA 不够明确'],
+      humanReviewItems: ['确认页面列表是否覆盖真实核心页面。'],
+    }, null, 2))
   }
 
   function updateProjectField(field: 'projectName' | 'domain' | 'company' | 'industry' | 'primaryConversionGoal', value: string) {
@@ -988,7 +1141,7 @@ function App() {
             addGeneratedTask({
               title: `审查提示词输出：${prompt.name}`,
               description: '检查输出 JSON、人工确认点和失败处理是否符合契约。',
-              source: 'AI 工作台',
+              source: '智能体任务中心',
               taskType: 'system_check',
               priority: 'p2',
             }),
@@ -1077,8 +1230,8 @@ function App() {
     setDrawer({
       title: '还没有站点快照',
       eyebrow: '站点接入与读取',
-      description: '请先保存项目档案，然后生成本地只读站点快照。',
-      content: <EmptyState title="没有读取结果" text="项目中心会生成本地模拟快照，用于后续审计步骤。" action="去项目中心" onClick={() => navigate('/project-center')} />,
+      description: '请先保存项目档案，然后生成站点读取任务包并回填外部智能体结果。',
+      content: <EmptyState title="没有读取结果" text="项目中心会生成 AgentTaskPack，外部智能体执行后回填 site_read_snapshot_v1，再由程序内 AI 解析校验。" action="去项目中心" onClick={() => navigate('/project-center')} />,
       actions: [{ label: '去项目中心', icon: <Database className="h-4 w-4" />, onClick: () => navigate('/project-center') }],
     })
     return undefined
@@ -1233,20 +1386,107 @@ function App() {
     const projectReady = Boolean(workspace?.project)
     const snapshotReady = Boolean(latestSnapshot?.pages?.length)
     const inputClass = 'mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
+    const sources = ['WordPress 页面', 'WordPress 文章', 'WooCommerce 产品', '媒体库', '菜单', '表单', 'SEO 字段', '关键词 CSV', 'B2B 公司资料', '证据素材', '内容引擎输出包']
+    const sourceStatus = (source: string, index: number) => {
+      if (['WordPress 页面', 'WordPress 文章', 'WooCommerce 产品', '媒体库', '菜单', '表单', 'SEO 字段'].includes(source)) {
+        return snapshotReady ? ['green', '已读取'] as const : ['orange', '等待 Artifact'] as const
+      }
+      return index < 9 ? ['orange', '后续阶段'] as const : ['gray', '未开始'] as const
+    }
     return (
       <PageShell
         eyebrow="项目中心 / 站点接入"
         title="站点接入与读取"
-        description="这一步只建立本地项目档案，并生成本地只读模拟快照。系统不会保存 WordPress 密码、不会上传媒体、不会写入或发布任何内容。"
+        description="这一步先建立项目档案，再由程序内 AI 生成外部智能体任务包；外部智能体执行后回填 Artifact，程序内 AI 解析校验，人工批准后进入网站现状审计。"
         actions={
           <>
             <Button tone="secondary" icon={<RefreshCw className="h-4 w-4" />} onClick={() => void refreshWorkspace()}>刷新状态</Button>
-            <Button icon={<Database className="h-4 w-4" />} onClick={() => void createSnapshotFromUi()}>{snapshotReady ? '重新生成快照' : '生成本地读取快照'}</Button>
+            <Button icon={<Bot className="h-4 w-4" />} onClick={() => void createSiteReadTaskPackFromUi()}>{siteReadTaskPack ? '重新生成任务包' : '生成站点读取任务包'}</Button>
           </>
         }
       >
         {workspaceError && <Notice title="操作提示" text={workspaceError} tone="red" />}
         {workspaceLoading && <Notice title="正在读取本地工作区" text="请稍等，系统正在读取项目档案和站点快照状态。" tone="blue" />}
+        <Panel
+          title="站点读取智能体闭环"
+          description="主流程：生成 AgentTaskPack → 复制给外部智能体 → 回填 site_read_snapshot_v1 → 程序内 AI 解析校验 → 人工审核入库。"
+          action={<StatusBadge tone={siteReadIngestion?.status === 'approved' ? 'green' : siteReadIngestion ? 'orange' : siteReadTaskPack ? 'blue' : 'gray'}>{siteReadIngestion?.status === 'approved' ? '已批准入库' : siteReadIngestion ? '等待人工审核' : siteReadTaskPack ? '任务包已生成' : '等待任务包'}</StatusBadge>}
+        >
+          <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+            <div className="space-y-4">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <label className="text-sm font-medium text-gray-700">
+                  外部执行智能体
+                  <select className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100" value={siteReadAgent} onChange={(event) => setSiteReadAgent(event.target.value)}>
+                    <option value="openclaw">OpenClaw</option>
+                    <option value="chatgpt">ChatGPT</option>
+                    <option value="claude">Claude</option>
+                    <option value="generic-agent">通用智能体</option>
+                  </select>
+                </label>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button icon={<Bot className="h-4 w-4" />} onClick={() => void createSiteReadTaskPackFromUi()}>{workspaceBusy ? '处理中...' : '生成 AgentTaskPack'}</Button>
+                  <Button tone="secondary" icon={<ClipboardList className="h-4 w-4" />} onClick={() => void copySiteReadTaskPackFromUi()}>复制任务包</Button>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-white p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-gray-900">回填 Artifact</p>
+                  <Button size="sm" tone="secondary" icon={<FileText className="h-4 w-4" />} onClick={fillSampleSiteReadArtifact}>填入示例</Button>
+                </div>
+                <textarea
+                  className="mt-3 min-h-48 w-full resize-y rounded-lg border border-gray-300 bg-white px-3 py-2 font-mono text-xs leading-5 text-gray-900 outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
+                  value={siteReadArtifactText}
+                  onChange={(event) => setSiteReadArtifactText(event.target.value)}
+                  placeholder="粘贴外部智能体返回的 site_read_snapshot_v1 JSON。"
+                />
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button icon={<Upload className="h-4 w-4" />} onClick={() => void submitSiteReadArtifactFromUi()}>保存回填</Button>
+                  <Button tone="secondary" icon={<Sparkles className="h-4 w-4" />} onClick={() => void runSiteReadIngestionFromUi()}>AI 解析校验</Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-lg border border-gray-200 bg-white p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-gray-900">任务包预览</p>
+                  <StatusBadge tone={siteReadTaskPack ? 'blue' : 'gray'}>{siteReadTaskPack ? siteReadTaskPack.status : '未生成'}</StatusBadge>
+                </div>
+                {siteReadTaskPack ? (
+                  <pre className="mt-3 max-h-72 overflow-auto rounded-lg bg-gray-950 p-3 text-xs leading-5 text-gray-100">{siteReadTaskPack.promptMarkdown}</pre>
+                ) : (
+                  <EmptyState title="还没有任务包" text="请先保存项目档案，然后生成站点读取 AgentTaskPack。" action="生成任务包" onClick={() => void createSiteReadTaskPackFromUi()} />
+                )}
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-white p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-gray-900">解析与人工审核</p>
+                  <StatusBadge tone={siteReadIngestion?.validationResult.valid ? 'green' : siteReadIngestion ? 'red' : 'gray'}>{siteReadIngestion ? `质量分 ${siteReadIngestion.validationResult.qualityScore}` : '等待解析'}</StatusBadge>
+                </div>
+                {siteReadIngestion ? (
+                  <div className="mt-3 space-y-3">
+                    <InfoGrid items={[
+                      ['解析状态', siteReadIngestion.status],
+                      ['是否可推进', siteReadIngestion.canAdvance ? '可以' : '不可以'],
+                      ['缺失字段', siteReadIngestion.validationResult.missingFields.join('、') || '无'],
+                      ['提醒事项', siteReadIngestion.humanReviewItems.length ? `${siteReadIngestion.humanReviewItems.length} 条` : '无'],
+                    ]} />
+                    <ListBlock title="人工审核项" items={siteReadIngestion.humanReviewItems} />
+                    <div className="flex flex-wrap gap-2">
+                      <Button icon={<CheckCircle2 className="h-4 w-4" />} onClick={() => void reviewSiteReadIngestionFromUi('approved')}>人工批准入库</Button>
+                      <Button tone="danger" icon={<X className="h-4 w-4" />} onClick={() => void reviewSiteReadIngestionFromUi('rejected')}>驳回并保留原文</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <EmptyState title="还没有解析结果" text="保存 Artifact 后，点击 AI 解析校验。解析通过且人工批准后，才会写入正式站点快照。" />
+                )}
+              </div>
+            </div>
+          </div>
+        </Panel>
         <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
           <Panel title="项目档案" description="这些信息会作为后续审计、B2B 上下文和关键词判断的基础输入。" action={<StatusBadge tone={projectReady ? 'green' : 'orange'}>{projectReady ? '已保存' : '待保存'}</StatusBadge>}>
             <div className="grid gap-4 md:grid-cols-2">
@@ -1261,7 +1501,7 @@ function App() {
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               <Button icon={<Check className="h-4 w-4" />} onClick={() => void saveProjectFromUi()}>{workspaceBusy ? '处理中...' : '保存项目档案'}</Button>
-              <Button tone="secondary" icon={<RefreshCw className="h-4 w-4" />} onClick={() => void createSnapshotFromUi()}>保存后生成快照</Button>
+              <Button tone="secondary" icon={<RefreshCw className="h-4 w-4" />} onClick={() => void createSnapshotFromUi()}>开发预览：生成本地模拟快照</Button>
             </div>
           </Panel>
           <Panel title="只读安全边界" action={<StatusBadge tone="green">本地模拟 / 不写站点</StatusBadge>}>
@@ -1288,7 +1528,8 @@ function App() {
               ['安全边界', 100, '只读 / 不写入'],
             ]} />
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button icon={<RefreshCw className="h-4 w-4" />} onClick={() => void createSnapshotFromUi()}>{snapshotReady ? '重新生成快照' : '生成本地读取快照'}</Button>
+              <Button icon={<Bot className="h-4 w-4" />} onClick={() => void createSiteReadTaskPackFromUi()}>{siteReadTaskPack ? '重新生成任务包' : '生成站点读取任务包'}</Button>
+              <Button tone="secondary" icon={<RefreshCw className="h-4 w-4" />} onClick={() => void createSnapshotFromUi()}>开发预览：本地模拟快照</Button>
               <Button tone="secondary" icon={<Eye className="h-4 w-4" />} onClick={openSnapshotDrawer}>查看快照详情</Button>
             </div>
           </Panel>
@@ -1306,71 +1547,40 @@ function App() {
                 <SimpleTable headers={['页面标题', 'URL', '页面类型', '字数', '表单']} rows={latestSnapshot.pages.map((page) => [page.title, page.url, page.pageType, `${page.wordCount}`, page.formsDetected.length ? page.formsDetected.join('、') : '无'])} />
               </div>
             ) : (
-              <EmptyState title="还没有读取快照" text="保存项目档案后，点击生成本地读取快照。快照会作为下一步网站现状审计的输入。" action="生成本地读取快照" onClick={() => void createSnapshotFromUi()} />
+              <EmptyState title="还没有读取快照" text="保存项目档案后，先生成站点读取任务包并交给外部智能体执行；回填解析并人工批准后，快照会作为下一步网站现状审计的输入。" action="生成任务包" onClick={() => void createSiteReadTaskPackFromUi()} />
             )}
-          </Panel>
-        </div>
-      </PageShell>
-    )
-    const sources = ['WordPress 页面', 'WordPress 文章', 'WooCommerce 产品', '媒体库', 'SEO 插件字段', 'ACF 字段', '关键词 CSV', 'B2B 公司资料', '证据素材', '内容引擎输出包']
-    return (
-      <PageShell
-        eyebrow="项目中心 / 数据源中心"
-        title="单个 WordPress B2B 项目的输入来源和只读权限"
-        description="管理项目档案、读取状态、导入文件和资料缺口；这里没有发布、写入或媒体上传能力。"
-        actions={<Button icon={<RefreshCw className="h-4 w-4" />} onClick={runReadSimulation}>模拟重新读取</Button>}
-      >
-        <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
-          <Panel title="项目档案" action={<Button tone="secondary" onClick={() => setModal({ title: '编辑项目档案', description: '只修改本地演示状态，用于演示档案编辑入口。', content: <MockForm fields={['项目名称', '网站域名', '行业', '目标市场', '主转化目标']} />, primaryLabel: '保存演示档案', onPrimary: () => showToast('项目档案已保存到演示状态') })}>编辑项目档案</Button>}>
-            <InfoGrid
-              items={[
-                ['项目名称', mockProject.projectName],
-                ['网站域名', mockProject.domain],
-                ['公司名称', mockProject.company],
-                ['行业', mockProject.industry],
-                ['目标市场', mockProject.targetMarkets.join(' / ')],
-                ['供应链身份', mockProject.supplierIdentity],
-                ['核心产品线', mockProject.coreProducts.join(' / ')],
-                ['目标客户', mockProject.targetCustomers.join(' / ')],
-                ['主转化目标', mockProject.primaryConversionGoal],
-                ['当前阶段', mockProject.currentStage],
-              ]}
-            />
-          </Panel>
-
-          <Panel title="WordPress 连接状态" action={<StatusBadge tone="green">演示预览 / 未来只读 WordPress</StatusBadge>}>
-            <div className="grid gap-3 md:grid-cols-2">
-              <BoundaryCard title="可读取" items={['页面', '文章', '产品', '媒体素材', '分类', '菜单', 'SEO 字段']} tone="green" />
-              <BoundaryCard title="不可执行" items={['创建', '更新', '删除', '发布', '上传媒体']} tone="red" />
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button onClick={openSnapshotDrawer} icon={<Eye className="h-4 w-4" />}>查看读取摘要</Button>
-              <Button onClick={runReadSimulation} icon={<RefreshCw className="h-4 w-4" />} tone="secondary">测试只读连接</Button>
-            </div>
           </Panel>
         </div>
 
         <Panel title="数据源状态" description="所有输入只进入本地原型状态，不触发真实外部请求。">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-            {sources.map((source, index) => (
-              <button key={source} className="rounded-lg border border-gray-200 bg-white p-3 text-left transition hover:border-primary-200 hover:bg-primary-50" onClick={() => showToast(`${source} 状态已打开演示详情`, 'blue')}>
-                <div className="flex items-center justify-between">
-                  <Database className="h-4 w-4 text-primary-600" />
-                  <StatusBadge tone={index < 7 ? 'green' : 'orange'}>{index < 7 ? '已接入' : '待补充'}</StatusBadge>
-                </div>
-                <p className="mt-3 text-sm font-semibold text-gray-900">{source}</p>
-                <p className="mt-1 text-xs text-gray-500">最近更新：{index < 6 ? readTimestamp : '等待导入'}</p>
-              </button>
-            ))}
+            {sources.map((source, index) => {
+              const [tone, label] = sourceStatus(source, index)
+              return (
+                <button key={source} className="rounded-lg border border-gray-200 bg-white p-3 text-left transition hover:border-primary-200 hover:bg-primary-50" onClick={() => showToast(`${source} 仍由当前主流程逐步接管`, 'blue')}>
+                  <div className="flex items-center justify-between">
+                    <Database className="h-4 w-4 text-primary-600" />
+                    <StatusBadge tone={tone}>{label}</StatusBadge>
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-gray-900">{source}</p>
+                  <p className="mt-1 text-xs text-gray-500">来源：{snapshotReady && index < 7 ? '已批准站点快照' : '等待对应阶段产出物'}</p>
+                </button>
+              )
+            })}
           </div>
         </Panel>
 
         <div className="grid gap-4 xl:grid-cols-2">
           <Panel title="最近一次读取摘要">
-            <InfoGrid items={[['读取时间', readTimestamp], ['页面 / 文章 / 产品', '86 / 42 / 38'], ['媒体', '128'], ['异常项', '12 个 Meta 缺失、8 个 Focus Keyword 缺失']]} />
+            <InfoGrid items={[
+              ['读取时间', latestSnapshot ? formatDateTime(latestSnapshot.snapshotAt) : '等待 Artifact 入库'],
+              ['页面 / 文章 / 产品', latestSnapshot ? `${latestSnapshot.pageCount} / ${latestSnapshot.postCount} / ${latestSnapshot.productCount}` : '0 / 0 / 0'],
+              ['媒体', latestSnapshot ? `${latestSnapshot.mediaCount}` : '0'],
+              ['异常项', latestSnapshot?.anomalies.length ? latestSnapshot.anomalies.join('、') : '等待外部智能体回填'],
+            ]} />
           </Panel>
-          <Panel title="资料缺口提醒" action={<Button tone="secondary" onClick={() => setDrawer({ title: '资料缺口', eyebrow: 'B2B 上下文', content: <ListBlock title="需要补充" items={['OEM 设备清单待确认', 'Automotive 案例需脱敏', 'QC 报告样张需确认可公开范围', 'MOQ 和 Lead Time 需要销售确认']} />, actions: [{ label: '生成缺口任务', onClick: () => addGeneratedTask({ title: '补充项目资料缺口', description: '确认缺失资料是否可用于页面修复与内容生产。', source: '项目中心', taskType: 'trust_evidence', priority: 'p1' }) }] })}>查看缺失资料</Button>}>
-            <EmptyState title="还缺 4 类关键资料" text="这些资料会影响页面修复包和内容引擎交接包。先补证据，再让 AI 生成内容建议。" action="打开资料缺口" onClick={() => navigate('/trust')} />
+          <Panel title="资料缺口提醒" action={<Button tone="secondary" onClick={() => setDrawer({ title: '资料缺口', eyebrow: 'B2B 上下文', content: <ListBlock title="后续需要补充" items={['公司身份和产品线确认', '目标客户和目标市场确认', '可公开的信任证据', '禁止使用的商业说法']} /> })}>查看缺失资料</Button>}>
+            <EmptyState title="后续阶段会逐步确认业务事实" text="当前阶段只负责站点读取。商业事实、证据和禁用说法会在 B2B 上下文阶段经人工确认后入库。" action="去证据库" onClick={() => navigate('/trust')} />
           </Panel>
         </div>
       </PageShell>
@@ -2059,7 +2269,7 @@ function App() {
         setRuns(nextRuns)
         setSelectedPromptId((current) => current || nextPrompts.find((prompt) => prompt.promptId === 'keyword-ai-cleaning-v1')?.promptId || nextPrompts[0]?.promptId || '')
       } catch (error) {
-        setAiError(error instanceof Error ? error.message : 'AI 工作台后端请求失败')
+        setAiError(error instanceof Error ? error.message : '智能体任务中心后端请求失败')
       } finally {
         setAiBusy(false)
       }
@@ -2205,16 +2415,16 @@ function App() {
     const pendingRuns = runs.filter((run) => run.status === 'waiting_for_human')
 
     return (
-        <PageShell eyebrow="AI 工作台" title="任务型 AI / 智能体执行面板，不是聊天入口" description="每个提示词都有输入、输出、人工确认点和禁止写入 WordPress 的边界。">
+        <PageShell eyebrow="智能体任务中心" title="任务包、Artifact 与回填解析记录" description="这里管理程序内 AI 生成的任务包、外部智能体回填的 Artifact，以及回填解析和人工审核记录。">
         <div className="grid gap-4 lg:grid-cols-4">
           <MetricCard title="本地后端" value={health?.ok ? '可用' : '未连接'} detail={health ? `提示词 ${health.promptCount} 个` : '等待检测'} tone={health?.ok ? 'green' : 'orange'} icon={<Cpu className="h-5 w-5" />} />
-          <MetricCard title="AI API" value="关闭" detail="手动 / 模拟模式" tone="gray" icon={<Lock className="h-5 w-5" />} />
-          <MetricCard title="执行记录" value={String(runs.length)} detail={`${pendingRuns.length} 待人工审核`} tone="blue" icon={<ClipboardList className="h-5 w-5" />} />
+          <MetricCard title="程序内 AI" value="任务包 / 解析" detail="不负责复杂抓取" tone="purple" icon={<Sparkles className="h-5 w-5" />} />
+          <MetricCard title="外部智能体" value="执行层" detail="抓取 / 搜索 / 审计 / 调研" tone="blue" icon={<Bot className="h-5 w-5" />} />
           <MetricCard title="WordPress 写入" value="禁止" detail="不发布、不上传媒体" tone="red" icon={<ShieldCheck className="h-5 w-5" />} />
         </div>
         {aiError && <div className="rounded-lg border border-danger-100 bg-danger-50 px-4 py-3 text-sm text-danger-700">{aiError}</div>}
         <Panel
-          title="AI 工作台模块"
+          title="智能体任务中心模块"
           action={
             <Segmented
               value={aiTab}
@@ -2346,7 +2556,7 @@ function App() {
   }
 
   function SettingsPage() {
-    const boundaries = ['只支持 WordPress B2B 独立站', '当前为只读模式', '不自动发布', '不写入 WordPress', '不上传媒体', '不自动确认商业事实', '不做供应商验证', '不做多站点后台', '不做 Shopify / Webflow 适配', '不做外链 / 广告 / CRM']
+    const boundaries = ['程序内 AI 只负责任务包生成和 Artifact 解析', '复杂抓取、搜索、审计、调研由外部智能体完成', '只支持 WordPress B2B 独立站', '当前为只读模式', '不自动发布', '不写入 WordPress', '不上传媒体', '不自动确认商业事实', '不做供应商验证', '不做多站点后台', '不做 Shopify / Webflow 适配', '不做外链 / 广告 / CRM']
     const [backendHealth, setBackendHealth] = useState<BackendHealth | null>(null)
     const [backendError, setBackendError] = useState('')
 
@@ -2366,13 +2576,13 @@ function App() {
     }
 
     return (
-      <PageShell eyebrow="设置 / 系统状态" title="产品边界、安全状态和本地运行设置" description="这页明确展示哪些动作允许、禁止、需要人工确认。">
+      <PageShell eyebrow="设置 / 系统状态" title="双 AI 层、安全边界和本地运行设置" description="这页明确区分程序内 AI 和外部执行层 AI，并展示哪些动作允许、禁止、需要人工确认。">
         <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
           <Panel
             title="产品硬边界"
             action={
               <>
-                <Button onClick={() => setModal({ title: '安全边界说明', description: '系统边界用于防止原型误导为真实自动化发布工具。', content: <div className="grid gap-3 md:grid-cols-4"><BoundaryCard title="允许的动作" tone="green" items={['读取演示数据', '生成本地建议', '导出演示包']} /><BoundaryCard title="禁止的动作" tone="red" items={['发布', '写入', '上传媒体', '确认事实']} /><BoundaryCard title="需要人工确认" tone="orange" items={['关键词审核', '证据确认', '页面修复包', '交付包']} /><BoundaryCard title="未来版本才可能支持" tone="orange" items={['受控 WordPress 写入', '团队权限', '真实 API 连接']} /></div>, primaryLabel: '知道了' })}>查看安全边界</Button>
+                <Button onClick={() => setModal({ title: '安全边界说明', description: '系统边界用于防止原型误导为真实自动化发布工具。', content: <div className="grid gap-3 md:grid-cols-4"><BoundaryCard title="程序内 AI" tone="green" items={['生成任务包', '解析 Artifact', '校验完整性', '生成审核项']} /><BoundaryCard title="外部智能体" tone="blue" items={['网页抓取', '联网搜索', 'SEO 审计', '关键词调研']} /><BoundaryCard title="禁止的动作" tone="red" items={['发布', '写入', '上传媒体', '保存密码']} /><BoundaryCard title="需要人工确认" tone="orange" items={['关键词审核', '证据确认', '页面修复包', '交付包']} /></div>, primaryLabel: '知道了' })}>查看安全边界</Button>
                 <Button tone="secondary" onClick={() => setDrawer({ title: '本地数据结构', eyebrow: '本地演示数据', description: '展示原型中的本地数据对象，不暴露真实路径或凭据。', content: <SimpleTable headers={['对象', '用途', '状态']} rows={[['项目档案', '项目档案和业务边界', '演示数据'], ['WordPress 只读快照', 'WordPress 只读读取快照', '演示数据'], ['关键词总库', '关键词总库和审核状态', '演示数据'], ['审计问题', 'SEO 审计问题', '演示数据'], ['任务记录', '任务中心状态', '演示数据'], ['证据库', '证据库与事实边界', '演示数据'], ['交付包', '交付包状态', '演示数据']]} /> })}>查看本地数据结构</Button>
               </>
             }
@@ -2387,12 +2597,12 @@ function App() {
             </div>
           </Panel>
           <Panel title="系统检查" action={<Button onClick={() => { setSystemCheckDone(true); void refreshBackendHealth(); showToast('系统检查完成') }}>系统检查</Button>}>
-            <ProgressRows rows={[['只读模式', 100, '已开启'], ['本地后端', backendHealth?.ok ? 100 : 0, backendHealth?.ok ? '可用' : '未连接'], ['WordPress 写入', 0, '关闭'], ['AI API 调用', 0, '关闭'], ['本地 JSON 存储', backendHealth?.ok ? 100 : 40, backendHealth?.ok ? '可写执行记录' : '待检测'], ['交付导出', systemCheckDone ? 100 : 40, systemCheckDone ? '检查完成' : '待检查']]} />
+            <ProgressRows rows={[['只读模式', 100, '已开启'], ['本地后端', backendHealth?.ok ? 100 : 0, backendHealth?.ok ? '可用' : '未连接'], ['程序内 AI API', 40, '用于任务包生成和 Artifact 解析'], ['外部智能体执行', 100, '抓取 / 搜索 / 审计 / 调研'], ['WordPress 写入', 0, '关闭'], ['自动发布', 0, '关闭'], ['本地 JSON 存储', backendHealth?.ok ? 100 : 40, backendHealth?.ok ? '可写执行记录' : '待检测']]} />
             {backendError && <p className="mt-3 rounded-lg border border-warning-100 bg-warning-50 px-3 py-2 text-sm text-warning-700">{backendError}</p>}
           </Panel>
         </div>
         <Panel title="本地数据与功能开关">
-          <SimpleTable headers={['模块', '当前状态', '说明']} rows={[['WordPress 连接', '演示预览', '未来只读接口，不保存写入权限'], ['本地后端', backendHealth?.ok ? '可用' : '未连接', '4310 API 提供提示词库和执行记录'], ['AI 模型配置', '关闭', '手动 / 模拟模式，不调用真实 API'], ['提示词库', backendHealth ? `${backendHealth.promptCount} 个提示词` : '待检测', '展示契约、输入输出和人工审核点'], ['安全边界', '强制显示', '所有页面展示只读/不发布'], ['导出设置', '本地演示数据', '不包含敏感信息']]} />
+          <SimpleTable headers={['模块', '当前状态', '说明']} rows={[['程序内 AI API', '可选辅助', '用于生成 AgentTaskPack 和解析回填 Artifact，不负责复杂执行'], ['外部执行层 AI', '用户自行执行', 'ChatGPT / Claude / OpenClaw 负责网页抓取、联网搜索、SEO 审计和调研'], ['WordPress 写入', '关闭', '不保存写入权限，不上传媒体，不自动发布'], ['本地后端', backendHealth?.ok ? '可用' : '未连接', '4310 API 提供提示词库、任务包、回填和解析记录'], ['提示词库', backendHealth ? `${backendHealth.promptCount} 个提示词` : '待检测', '展示契约、输入输出和人工审核点'], ['安全边界', '强制显示', '所有页面展示只读/不发布']]} />
         </Panel>
       </PageShell>
     )
@@ -2641,7 +2851,8 @@ function TopBar({
           <div className="mt-2 flex flex-wrap gap-2">
             <StatusBadge tone="blue">当前：{currentStepLabel}</StatusBadge>
             <StatusBadge tone={siteReady ? 'green' : 'orange'}>读取：{siteReady ? readTimestamp : '未生成快照'}</StatusBadge>
-            <StatusBadge tone="green">AI API：关闭</StatusBadge>
+            <StatusBadge tone="purple">程序内 AI：任务包 / 解析</StatusBadge>
+            <StatusBadge tone="blue">外部智能体：执行层</StatusBadge>
             <StatusBadge tone="green">WordPress 写入：关闭</StatusBadge>
             <StatusBadge tone="green">凭据保存：关闭</StatusBadge>
           </div>
@@ -2657,7 +2868,7 @@ function TopBar({
             使用教程
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
-          <Button size="sm" tone="secondary" icon={<RefreshCw className="h-4 w-4" />} onClick={onRead}>{siteReady ? '重新生成快照' : '生成站点快照'}</Button>
+          <Button size="sm" tone="secondary" icon={<RefreshCw className="h-4 w-4" />} onClick={onRead}>开发预览快照</Button>
           <Button size="sm" tone="secondary" icon={<Database className="h-4 w-4" />} onClick={onImport}>后续：关键词导入</Button>
           <Button size="sm" tone="secondary" icon={<ClipboardList className="h-4 w-4" />} onClick={onTasks}>任务中心</Button>
         </div>
