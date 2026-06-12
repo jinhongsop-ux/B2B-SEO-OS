@@ -15,6 +15,7 @@ export const DEFAULT_WORKSPACE_STATE = {
   auditRuns: [],
   auditFindings: [],
   b2bContext: null,
+  seedKeywordPlan: null,
   keywordImportBatches: [],
   keywords: [],
   keywordCleaningRuns: [],

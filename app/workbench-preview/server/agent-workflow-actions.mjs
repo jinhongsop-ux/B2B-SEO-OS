@@ -1080,3 +1080,540 @@ export function reviewB2bContext(state, body) {
   })
   return state.b2bContext
 }
+
+// ── S4 种子关键词计划 ──
+
+const S4_SCHEMA = 'seed_keyword_plan_v1'
+
+export function buildSeedKeywordPlanPrompt(state) {
+  const project = state.project
+  const context = state.b2bContext
+
+  if (!project?.projectName) {
+    throw new AgentWorkflowError(409, 'prerequisite_missing', '请先完成项目档案。')
+  }
+  if (!context || context.status !== 'done') {
+    throw new AgentWorkflowError(409, 'prerequisite_missing', '请先完成 B2B 上下文确认。')
+  }
+
+  const productLines = context.productLines.filter((pl) => pl.confirmed).map((pl) => pl.name || pl.description).join('、')
+  const buyerRoles = context.buyerPersonas.map((bp) => bp.role).join('、')
+  const valueProps = context.brandPositioning?.valuePropositions?.map((vp) => vp.vp).join('、') || ''
+
+  return `# 种子关键词计划
+
+你是 B2B SEO 关键词策略师。基于以下项目档案和 B2B 上下文，生成种子词作战表。
+
+## 项目档案
+- 项目名：${project.projectName}
+- 域名：${project.domain}
+- 行业：${project.industry}
+- 供应链身份：${project.supplierIdentity}
+- 目标市场：${project.targetMarkets.join('、')}
+- 核心产品：${project.coreProducts.join('、')}
+- 目标客户：${project.targetCustomers.join('、')}
+- 转化目标：${project.primaryConversionGoal}
+
+## B2B 上下文摘要
+- 产品线：${productLines || '待确认'}
+- 采购角色：${buyerRoles || '待确认'}
+- 价值主张：${valueProps || '待确认'}
+- 行业认知：${context.industryCognition?.productDefinition || '待确认'}
+- 应用行业：${(context.industryCognition?.applications || []).join('、') || '待确认'}
+- 核心材料：${(context.industryCognition?.materials || []).join('、') || '待确认'}
+- 核心工艺：${(context.industryCognition?.processes || []).join('、') || '待确认'}
+
+## 输出要求
+按 8 个模块输出种子词矩阵。每个种子词保留英文，解释用中文。
+
+### 模块 1：核心产品词矩阵
+T1（核心产品词）、T2（产品+修饰词）、T3（长尾产品词）
+
+### 模块 2：供应商身份词矩阵
+manufacturer、supplier、factory、wholesale、bulk、distributor、exporter 等组合
+
+### 模块 3：定制与 OEM/ODM 词矩阵
+custom、private label、OEM、ODM、logo printing、custom size 等
+
+### 模块 4：应用行业词矩阵
+[product] for [industry/application] 格式
+
+### 模块 5：材料/工艺/认证词矩阵
+材料、技术参数、生产工艺、认证、合规标准
+
+### 模块 6：采购问题与 PAA 触发词
+50-80 个英文问题词，覆盖 MOQ、lead time、sample、price、supplier selection、QC、certification、shipping、customization
+
+### 模块 7：竞品反查清单
+5-10 个竞品/同行网站类型和搜索方式
+
+### 模块 8：工具执行清单
+按 Semrush/Ahrefs、GKP、PAA、Google Suggest、竞品反查分别列执行步骤
+
+## 禁止事项
+- 种子词保留英文，解释用中文。
+- 不生成最终页面架构，页面映射留给后续阶段。
+- 优先级用 P0/P1/P2。
+- 不使用 DTC 术语。
+
+## 必须返回的 JSON
+只返回一个 JSON 对象，schemaVersion 必须是 \`${S4_SCHEMA}\`。
+
+\`\`\`json
+{
+  "schemaVersion": "${S4_SCHEMA}",
+  "seedGroups": [
+    {
+      "seedGroupId": "sg-001",
+      "moduleType": "core_product",
+      "name": "核心产品词矩阵",
+      "seeds": [
+        { "keyword": "cnc machining parts", "chineseExplanation": "CNC 加工零件", "productLine": "核心产品", "priority": "P0", "toolInstruction": "在 Semrush 中查 volume 和 KD" }
+      ]
+    }
+  ],
+  "paaQuestions": ["how to choose a reliable supplier for..."],
+  "competitorResearchSeeds": ["搜索 site:alibaba.com [industry] supplier"],
+  "researchInstructions": ["使用 Semrush 的 Keyword Magic Tool..."],
+  "negativeDirections": ["避免 DTC 消费者词", "避免品牌词蚕食"],
+  "humanReviewItems": ["确认产品词覆盖完整", "确认采购问题真实存在"]
+}
+\`\`\`
+`
+}
+
+export function generateSeedKeywordPlanMock(state) {
+  const project = state.project
+  const context = state.b2bContext
+  const product = project.coreProducts[0] || 'products'
+  const market = project.targetMarkets[0] || 'global'
+
+  return {
+    schemaVersion: S4_SCHEMA,
+    seedGroups: [
+      {
+        seedGroupId: 'sg-001',
+        moduleType: 'core_product',
+        name: '核心产品词矩阵',
+        seeds: [
+          { keyword: `${product.toLowerCase()}`, chineseExplanation: `核心产品词`, productLine: product, priority: 'P0', toolInstruction: 'Semrush 查 volume/KD' },
+          { keyword: `custom ${product.toLowerCase()}`, chineseExplanation: `定制${product}`, productLine: product, priority: 'P0', toolInstruction: 'GKP 查搜索量' },
+          { keyword: `${product.toLowerCase()} manufacturer`, chineseExplanation: `${product}制造商`, productLine: product, priority: 'P0', toolInstruction: 'Semrush 竞品分析' },
+          { keyword: `wholesale ${product.toLowerCase()}`, chineseExplanation: `批发${product}`, productLine: product, priority: 'P1', toolInstruction: '查看商业意图' },
+        ],
+      },
+      {
+        seedGroupId: 'sg-002',
+        moduleType: 'supplier_identity',
+        name: '供应商身份词矩阵',
+        seeds: [
+          { keyword: `${project.industry.toLowerCase()} supplier`, chineseExplanation: `${project.industry}供应商`, productLine: '通用', priority: 'P0', toolInstruction: 'Semrush 查排名' },
+          { keyword: `${project.industry.toLowerCase()} manufacturer`, chineseExplanation: `${project.industry}制造商`, productLine: '通用', priority: 'P0', toolInstruction: '检查 SERP 竞争度' },
+          { keyword: `${project.industry.toLowerCase()} factory`, chineseExplanation: `${project.industry}工厂`, productLine: '通用', priority: 'P1', toolInstruction: 'Google Suggest 扩展' },
+          { keyword: `${project.industry.toLowerCase()} exporter`, chineseExplanation: `${project.industry}出口商`, productLine: '通用', priority: 'P1', toolInstruction: '查看国际搜索量' },
+        ],
+      },
+      {
+        seedGroupId: 'sg-003',
+        moduleType: 'custom_oem',
+        name: '定制与 OEM/ODM 词矩阵',
+        seeds: [
+          { keyword: `custom ${product.toLowerCase()} manufacturer`, chineseExplanation: `定制${product}制造商`, productLine: product, priority: 'P0', toolInstruction: '高意向词，优先优化' },
+          { keyword: `OEM ${product.toLowerCase()}`, chineseExplanation: `OEM ${product}`, productLine: product, priority: 'P0', toolInstruction: 'B2B 高价值词' },
+          { keyword: `private label ${product.toLowerCase()}`, chineseExplanation: `贴牌${product}`, productLine: product, priority: 'P1', toolInstruction: '品牌方采购词' },
+        ],
+      },
+      {
+        seedGroupId: 'sg-004',
+        moduleType: 'application',
+        name: '应用行业词矩阵',
+        seeds: [
+          { keyword: `${product.toLowerCase()} for automotive`, chineseExplanation: `${product}用于汽车行业`, productLine: product, priority: 'P1', toolInstruction: '按行业扩展' },
+          { keyword: `${product.toLowerCase()} for electronics`, chineseExplanation: `${product}用于电子行业`, productLine: product, priority: 'P1', toolInstruction: '查看行业搜索量' },
+          { keyword: `industrial ${product.toLowerCase()}`, chineseExplanation: `工业用${product}`, productLine: product, priority: 'P1', toolInstruction: '应用场景扩展' },
+        ],
+      },
+      {
+        seedGroupId: 'sg-005',
+        moduleType: 'material_process',
+        name: '材料/工艺/认证词矩阵',
+        seeds: [
+          { keyword: `stainless steel ${product.toLowerCase()}`, chineseExplanation: `不锈钢${product}`, productLine: product, priority: 'P1', toolInstruction: '材料词扩展' },
+          { keyword: `${product.toLowerCase()} with ISO certification`, chineseExplanation: `ISO 认证${product}`, productLine: product, priority: 'P2', toolInstruction: '合规词，信任建设' },
+        ],
+      },
+    ],
+    paaQuestions: [
+      `how to choose a reliable ${project.industry.toLowerCase()} supplier`,
+      `what is the MOQ for custom ${product.toLowerCase()}`,
+      `how long is the lead time for ${product.toLowerCase()}`,
+      `how to verify a ${project.industry.toLowerCase()} factory`,
+      `what certifications should a ${project.industry.toLowerCase()} supplier have`,
+      `how to get samples from ${project.industry.toLowerCase()} manufacturers`,
+      `what is the typical price range for ${product.toLowerCase()}`,
+      `how to ensure quality control when sourcing ${product.toLowerCase()}`,
+    ],
+    competitorResearchSeeds: [
+      `site:alibaba.com ${project.industry.toLowerCase()} supplier`,
+      `"${product.toLowerCase()}" manufacturer -alibaba -made-in-china`,
+      `intitle:"${product.toLowerCase()}" inurl:products`,
+      `${project.industry.toLowerCase()} supplier ${market.toLowerCase()}`,
+    ],
+    researchInstructions: [
+      '使用 Semrush Keyword Magic Tool 输入核心产品词，导出前 500 个相关词',
+      '使用 Google Keyword Planner 验证搜索量和竞争度',
+      '使用 AlsoAsked/PAA 抓取采购问题词',
+      '使用 Semrush Domain Overview 分析竞品关键词',
+      '使用 Google Suggest 和 Related Searches 扩展长尾词',
+    ],
+    negativeDirections: [
+      '避免 DTC 消费者词：buy now、cheap、best deal',
+      '避免品牌词蚕食：不要用竞品品牌名作为目标关键词',
+      '避免过宽泛词：不要用单个产品词如 parts、supplies',
+      '避免信息意图词映射到商业页：how-to 词应映射到 Resource/Blog',
+    ],
+    humanReviewItems: [
+      '确认产品词矩阵覆盖了所有产品线。',
+      '确认供应商身份词符合公司真实身份。',
+      '确认定制词反映了真实的定制能力。',
+      '确认采购问题词覆盖了常见客户问题。',
+      '确认没有包含无法满足的关键词方向。',
+    ],
+  }
+}
+
+export function submitSeedKeywordPlan(state, body) {
+  if (state.seedKeywordPlan) {
+    throw new AgentWorkflowError(409, 'plan_exists', '种子关键词计划已存在，请重置后再生成。')
+  }
+
+  const rawContent = cleanText(body.rawContent)
+  let parsed
+  if (rawContent) {
+    parsed = parseJsonArtifact(rawContent)
+    if (parsed.schemaVersion !== S4_SCHEMA) {
+      throw new AgentWorkflowError(400, 'invalid_schema', `schemaVersion 必须是 ${S4_SCHEMA}。`)
+    }
+  } else {
+    parsed = generateSeedKeywordPlanMock(state)
+  }
+
+  const plan = {
+    planId: createId('seed_plan'),
+    schemaVersion: S4_SCHEMA,
+    status: 'ready',
+    seedGroups: Array.isArray(parsed.seedGroups) ? parsed.seedGroups.map((group) => ({
+      seedGroupId: cleanText(group.seedGroupId) || createId('sg'),
+      moduleType: cleanText(group.moduleType) || 'general',
+      name: cleanText(group.name),
+      seeds: Array.isArray(group.seeds) ? group.seeds.map((seed) => ({
+        keyword: cleanText(seed.keyword),
+        chineseExplanation: cleanText(seed.chineseExplanation),
+        productLine: cleanText(seed.productLine),
+        priority: cleanText(seed.priority) || 'P2',
+        toolInstruction: cleanText(seed.toolInstruction),
+      })).filter((seed) => seed.keyword) : [],
+    })) : [],
+    paaQuestions: cleanList(parsed.paaQuestions),
+    competitorResearchSeeds: cleanList(parsed.competitorResearchSeeds),
+    researchInstructions: cleanList(parsed.researchInstructions),
+    negativeDirections: cleanList(parsed.negativeDirections),
+    humanReviewItems: cleanList(parsed.humanReviewItems),
+    sourceAiRunId: body.sourceAiRunId ? cleanText(body.sourceAiRunId) : null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
+
+  state.seedKeywordPlan = plan
+
+  addWorkspaceArtifact(state, {
+    type: 'seed_keyword_plan',
+    title: '种子关键词计划',
+    stepLabel: '关键词导入',
+    sourceId: plan.planId,
+    route: '/keywords',
+  })
+  return plan
+}
+
+export function resetSeedKeywordPlan(state) {
+  if (!state.seedKeywordPlan) {
+    throw new AgentWorkflowError(404, 'no_plan', '还没有生成种子关键词计划。')
+  }
+  state.seedKeywordPlan = null
+  return { reset: true }
+}
+
+// ── S5 关键词导入 ──
+
+export function importKeywords(state, body) {
+  const csvText = cleanText(body.csvText)
+  if (!csvText) {
+    throw new AgentWorkflowError(400, 'invalid_csv', '请粘贴关键词 CSV 文本。')
+  }
+
+  const sourceTool = cleanText(body.sourceTool) || 'manual_import'
+  const sourceFile = cleanText(body.sourceFile) || 'pasted_csv'
+  const market = cleanText(body.market) || (state.project?.targetMarkets?.[0] || '')
+
+  const rows = parseCsvRows(csvText)
+  if (rows.length === 0) {
+    throw new AgentWorkflowError(400, 'empty_csv', 'CSV 中没有有效数据行。')
+  }
+
+  const now = new Date().toISOString()
+  const batchId = createId('kw_batch')
+  const existingKeywords = new Set(state.keywords.map((kw) => kw.keyword.toLowerCase()))
+  const validRows = []
+  const skippedRows = []
+
+  for (const row of rows) {
+    const keyword = cleanText(row.keyword)
+    if (!keyword) {
+      skippedRows.push({ reason: 'empty_keyword', row })
+      continue
+    }
+    if (existingKeywords.has(keyword.toLowerCase())) {
+      skippedRows.push({ reason: 'duplicate', keyword })
+      continue
+    }
+
+    const volume = Number(row.volume || row.search_volume || row['search volume'] || 0)
+    const kd = Number(row.kd || row.keyword_difficulty || row['keyword difficulty'] || 0)
+    const intent = cleanText(row.intent || row.search_intent || row['search intent'] || '')
+    const seedGroup = cleanText(row.seed_group || row.seedGroup || '')
+
+    validRows.push({
+      keywordId: createId('kw'),
+      keyword,
+      volume: Number.isFinite(volume) ? volume : 0,
+      kd: Number.isFinite(kd) ? kd : 0,
+      sourceTool,
+      sourceFile,
+      seedGroup,
+      aiIntent: intent,
+      aiPageType: '',
+      aiRelevant: true,
+      isBrandTerm: false,
+      isPlatformTerm: false,
+      isB2CTerm: false,
+      cleaningReason: '',
+      aiConfidence: 0,
+      status: 'raw_imported',
+      assignedPageId: null,
+      assignedUrl: null,
+      isUsed: false,
+      isValidUnused: false,
+      reviewNotes: '',
+      createdAt: now,
+    })
+    existingKeywords.add(keyword.toLowerCase())
+  }
+
+  if (validRows.length === 0) {
+    throw new AgentWorkflowError(400, 'no_valid_keywords', 'CSV 中没有有效关键词。')
+  }
+
+  const batch = {
+    batchId,
+    sourceTool,
+    sourceFile,
+    market,
+    totalRows: rows.length,
+    validRows: validRows.length,
+    skippedRows: skippedRows.length,
+    status: 'imported',
+    createdAt: now,
+  }
+
+  state.keywordImportBatches.unshift(batch)
+  state.keywords.push(...validRows)
+
+  addWorkspaceArtifact(state, {
+    type: 'keyword_import_batch',
+    title: `关键词导入批次 (${validRows.length} 条)`,
+    stepLabel: '关键词导入',
+    sourceId: batchId,
+    route: '/keywords',
+  })
+  return { batch, importedCount: validRows.length, skippedCount: skippedRows.length }
+}
+
+// ── S6 关键词清洗 ──
+
+export function generateCleaningRun(state, body) {
+  const rawKeywords = state.keywords.filter((kw) => kw.status === 'raw_imported')
+  if (rawKeywords.length === 0) {
+    throw new AgentWorkflowError(409, 'no_raw_keywords', '没有待清洗的原始关键词。')
+  }
+
+  const now = new Date().toISOString()
+  const runId = createId('clean_run')
+  const suggestions = []
+
+  for (const kw of rawKeywords) {
+    const lower = kw.keyword.toLowerCase()
+    const reasons = []
+
+    // Detect brand/platform/B2C terms
+    const isBrandTerm = /\b(amazon|ebay|walmart|alibaba|aliexpress|wish)\b/i.test(lower)
+    const isPlatformTerm = /\b(shopify|woocommerce|etsy|tiktok shop)\b/i.test(lower)
+    const isB2CTerm = /\b(buy now|cheap|discount|coupon|free shipping|best seller|trending)\b/i.test(lower)
+
+    if (isBrandTerm) reasons.push('品牌平台词')
+    if (isPlatformTerm) reasons.push('平台技术词')
+    if (isB2CTerm) reasons.push('B2C 消费者词')
+
+    // Detect duplicates by similar intent
+    const existingSimilar = state.keywords.filter(
+      (other) => other.keywordId !== kw.keywordId && other.status !== 'raw_imported' &&
+        other.keyword.toLowerCase() === lower
+    )
+    if (existingSimilar.length > 0) reasons.push('完全重复')
+
+    const shouldReject = reasons.length > 0
+    const confidence = shouldReject ? 0.9 : 0.7
+
+    suggestions.push({
+      keywordId: kw.keywordId,
+      keyword: kw.keyword,
+      currentStatus: kw.status,
+      suggestedAction: shouldReject ? 'reject' : 'approve',
+      reason: reasons.join('；') || '符合 B2B 采购搜索意图',
+      isBrandTerm,
+      isPlatformTerm,
+      isB2CTerm,
+      confidence,
+    })
+  }
+
+  const approveCount = suggestions.filter((s) => s.suggestedAction === 'approve').length
+  const rejectCount = suggestions.filter((s) => s.suggestedAction === 'reject').length
+
+  const cleaningRun = {
+    cleaningRunId: runId,
+    status: 'waiting_review',
+    totalKeywords: rawKeywords.length,
+    approveCount,
+    rejectCount,
+    suggestions,
+    createdAt: now,
+    updatedAt: now,
+  }
+
+  state.keywordCleaningRuns.unshift(cleaningRun)
+  addWorkspaceArtifact(state, {
+    type: 'keyword_cleaning_run',
+    title: `关键词清洗建议 (${approveCount} 通过 / ${rejectCount} 拒绝)`,
+    stepLabel: '关键词清洗入库',
+    sourceId: runId,
+    route: '/keywords',
+  })
+  return cleaningRun
+}
+
+// ── S7 关键词审核入库 ──
+
+export function reviewCleaningRun(state, cleaningRunId, body) {
+  const cleaningRun = state.keywordCleaningRuns.find((run) => run.cleaningRunId === cleaningRunId)
+  if (!cleaningRun) {
+    throw new AgentWorkflowError(404, 'unknown_cleaning_run', '没有找到对应的清洗记录。')
+  }
+  if (cleaningRun.status !== 'waiting_review') {
+    throw new AgentWorkflowError(409, 'already_reviewed', '此清洗记录已审核。')
+  }
+
+  const decision = cleanText(body.decision)
+  if (!['approved', 'rejected'].includes(decision)) {
+    throw new AgentWorkflowError(400, 'invalid_decision', '审核结果必须是 approved 或 rejected。')
+  }
+
+  const now = new Date().toISOString()
+
+  if (decision === 'rejected') {
+    cleaningRun.status = 'rejected'
+    cleaningRun.updatedAt = now
+    cleaningRun.reviewDecision = { decision, reviewer: cleanText(body.reviewer) || 'operator', notes: cleanText(body.notes), reviewedAt: now }
+    return cleaningRun
+  }
+
+  // Approved: apply suggestions
+  const overrides = body.overrides && typeof body.overrides === 'object' ? body.overrides : {}
+  const keywordMap = new Map(state.keywords.map((kw) => [kw.keywordId, kw]))
+
+  for (const suggestion of cleaningRun.suggestions) {
+    const kw = keywordMap.get(suggestion.keywordId)
+    if (!kw) continue
+
+    const override = overrides[suggestion.keywordId]
+    const action = override?.action || suggestion.suggestedAction
+
+    if (action === 'reject') {
+      kw.status = 'rejected'
+      kw.cleaningReason = override?.reason || suggestion.reason
+      kw.isBrandTerm = suggestion.isBrandTerm
+      kw.isPlatformTerm = suggestion.isPlatformTerm
+      kw.isB2CTerm = suggestion.isB2CTerm
+    } else {
+      kw.status = 'approved'
+      kw.cleaningReason = suggestion.reason
+      kw.isBrandTerm = suggestion.isBrandTerm
+      kw.isPlatformTerm = suggestion.isPlatformTerm
+      kw.isB2CTerm = suggestion.isB2CTerm
+      kw.aiConfidence = suggestion.confidence
+    }
+  }
+
+  cleaningRun.status = 'done'
+  cleaningRun.updatedAt = now
+  cleaningRun.reviewDecision = { decision: 'approved', reviewer: cleanText(body.reviewer) || 'operator', notes: cleanText(body.notes), reviewedAt: now }
+
+  addWorkspaceArtifact(state, {
+    type: 'keyword_cleaning_approved',
+    title: '关键词清洗已批准',
+    stepLabel: '关键词清洗入库',
+    sourceId: cleaningRunId,
+    route: '/keywords',
+  })
+  return cleaningRun
+}
+
+// ── CSV 解析 ──
+
+function parseCsvRows(csvText) {
+  const lines = csvText.split('\n').map((line) => line.trim()).filter(Boolean)
+  if (lines.length < 2) return []
+
+  const headers = parseCsvLine(lines[0]).map((h) => cleanText(h).toLowerCase().replace(/\s+/g, '_'))
+  const rows = []
+
+  for (let i = 1; i < lines.length; i++) {
+    const values = parseCsvLine(lines[i])
+    if (values.length === 0) continue
+    const row = {}
+    headers.forEach((header, index) => {
+      row[header] = cleanText(values[index] || '')
+    })
+    rows.push(row)
+  }
+  return rows
+}
+
+function parseCsvLine(line) {
+  const result = []
+  let current = ''
+  let inQuotes = false
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+    if (char === '"') {
+      inQuotes = !inQuotes
+    } else if (char === ',' && !inQuotes) {
+      result.push(current)
+      current = ''
+    } else {
+      current += char
+    }
+  }
+  result.push(current)
+  return result
+}

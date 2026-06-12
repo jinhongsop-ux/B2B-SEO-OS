@@ -274,6 +274,137 @@ async function main() {
   assert.equal(finalWorkspace.workspace.b2bContext.status, 'done')
   assert.equal(finalWorkspace.workflow.steps[2].status, 'done')
   assert.equal(finalWorkspace.workflow.steps[3].status, 'ready')
+
+  // ── S4 种子关键词计划 ──
+
+  const seedPrompt = await getJson('/api/seed-keyword-plan/prompt')
+  assert.equal(typeof seedPrompt.prompt, 'string')
+  assert.match(seedPrompt.prompt, /种子关键词计划/)
+  assert.match(seedPrompt.prompt, /seed_keyword_plan_v1/)
+  assert.match(seedPrompt.prompt, /核心产品词矩阵/)
+
+  const seedGenResponse = await postJson('/api/seed-keyword-plan/generate', {})
+  assert.equal(seedGenResponse.status, 201)
+  assert.equal(seedGenResponse.body.seedKeywordPlan.schemaVersion, 'seed_keyword_plan_v1')
+  assert.equal(seedGenResponse.body.seedKeywordPlan.status, 'ready')
+  assert.ok(seedGenResponse.body.seedKeywordPlan.seedGroups.length >= 3)
+  assert.ok(seedGenResponse.body.seedKeywordPlan.paaQuestions.length > 0)
+  assert.ok(seedGenResponse.body.seedKeywordPlan.researchInstructions.length > 0)
+  assert.ok(seedGenResponse.body.seedKeywordPlan.competitorResearchSeeds.length > 0)
+
+  const seedGroup = seedGenResponse.body.seedKeywordPlan.seedGroups[0]
+  assert.equal(seedGroup.moduleType, 'core_product')
+  assert.ok(seedGroup.seeds.length > 0)
+  assert.ok(seedGroup.seeds[0].keyword)
+  assert.ok(seedGroup.seeds[0].priority)
+
+  const seedGetResponse = await getJson('/api/seed-keyword-plan')
+  assert.equal(seedGetResponse.seedKeywordPlan.status, 'ready')
+
+  const seedWorkspace = await getJson('/api/workspace')
+  assert.equal(seedWorkspace.workspace.seedKeywordPlan.status, 'ready')
+
+  const seedDuplicate = await postJson('/api/seed-keyword-plan/generate', {})
+  assert.equal(seedDuplicate.status, 409)
+  assert.equal(seedDuplicate.body.error.code, 'plan_exists')
+
+  const seedReset = await postJson('/api/seed-keyword-plan/reset', {})
+  assert.equal(seedReset.status, 200)
+  assert.equal(seedReset.body.result.reset, true)
+
+  const seedAfterReset = await getJson('/api/seed-keyword-plan')
+  assert.equal(seedAfterReset.seedKeywordPlan, null)
+
+  // ── S5 关键词导入 ──
+
+  const importEmpty = await postJson('/api/keywords/import', { csvText: '' })
+  assert.equal(importEmpty.status, 400)
+  assert.equal(importEmpty.body.error.code, 'invalid_csv')
+
+  const csvText = [
+    'keyword,volume,kd,intent',
+    'cnc machining parts,1200,35,commercial',
+    'custom metal stamping,800,28,commercial',
+    'oem manufacturing services,600,42,commercial',
+    'metal parts supplier,900,30,commercial',
+    'buy cheap stuff,5000,15,transactional',
+    'amazon warehouse,10000,5,navigational',
+  ].join('\n')
+
+  const importResponse = await postJson('/api/keywords/import', {
+    csvText,
+    sourceTool: 'semrush',
+    market: '美国',
+  })
+  assert.equal(importResponse.status, 201)
+  assert.equal(importResponse.body.importedCount, 6)
+  assert.equal(importResponse.body.skippedCount, 0)
+  assert.equal(importResponse.body.batch.sourceTool, 'semrush')
+
+  const kwList = await getJson('/api/keywords')
+  assert.equal(kwList.keywords.length, 6)
+  assert.equal(kwList.keywords[0].status, 'raw_imported')
+  assert.equal(kwList.importBatches.length, 1)
+  const importDup = await postJson('/api/keywords/import', {
+    csvText: 'keyword,volume\ncnc machining parts,1200\nbrand new keyword,200',
+  })
+  assert.equal(importDup.status, 201)
+  assert.equal(importDup.body.importedCount, 1)
+  assert.equal(importDup.body.skippedCount, 1)
+
+  // ── S6 关键词清洗 ──
+
+  const cleanResponse = await postJson('/api/keywords/clean', {})
+  assert.equal(cleanResponse.status, 201)
+  assert.equal(cleanResponse.body.cleaningRun.status, 'waiting_review')
+  assert.equal(cleanResponse.body.cleaningRun.totalKeywords, 7)
+  assert.ok(cleanResponse.body.cleaningRun.approveCount > 0)
+  assert.ok(cleanResponse.body.cleaningRun.rejectCount > 0)
+
+  // Verify B2C and brand terms detected
+  const suggestions = cleanResponse.body.cleaningRun.suggestions
+  const cheapSuggestion = suggestions.find((s) => s.keyword.includes('cheap'))
+  assert.ok(cheapSuggestion)
+  assert.equal(cheapSuggestion.suggestedAction, 'reject')
+  assert.equal(cheapSuggestion.isB2CTerm, true)
+
+  const amazonSuggestion = suggestions.find((s) => s.keyword.includes('amazon'))
+  assert.ok(amazonSuggestion)
+  assert.equal(amazonSuggestion.suggestedAction, 'reject')
+  assert.equal(amazonSuggestion.isBrandTerm, true)
+
+  const cncSuggestion = suggestions.find((s) => s.keyword.includes('cnc'))
+  assert.ok(cncSuggestion)
+  assert.equal(cncSuggestion.suggestedAction, 'approve')
+
+  const cleaningRuns = await getJson('/api/keywords/cleaning-runs')
+  assert.equal(cleaningRuns.cleaningRuns.length, 1)
+
+  // ── S7 关键词审核入库 ──
+
+  const cleanReviewResponse = await postJson(`/api/keywords/cleaning-runs/${cleanResponse.body.cleaningRun.cleaningRunId}/review`, {
+    decision: 'approved',
+    reviewer: 'operator',
+    notes: '清洗建议合理。',
+  })
+  assert.equal(cleanReviewResponse.status, 200)
+  assert.equal(cleanReviewResponse.body.cleaningRun.status, 'done')
+
+  const kwAfterClean = await getJson('/api/keywords')
+  const approvedKws = kwAfterClean.keywords.filter((kw) => kw.status === 'approved')
+  const rejectedKws = kwAfterClean.keywords.filter((kw) => kw.status === 'rejected')
+  assert.equal(approvedKws.length, cleanResponse.body.cleaningRun.approveCount)
+  assert.equal(rejectedKws.length, cleanResponse.body.cleaningRun.rejectCount)
+  assert.ok(approvedKws.some((kw) => kw.keyword.includes('cnc')))
+  assert.ok(rejectedKws.some((kw) => kw.keyword.includes('cheap')))
+  assert.ok(rejectedKws.some((kw) => kw.keyword.includes('amazon')))
+
+  const kwWorkspace = await getJson('/api/workspace')
+  assert.equal(kwWorkspace.workspace.keywordCount, 7)
+  assert.equal(kwWorkspace.workspace.approvedKeywordCount, cleanResponse.body.cleaningRun.approveCount)
+  assert.equal(kwWorkspace.workflow.currentStepId, 'keyword_assignment')
+  assert.equal(kwWorkspace.workflow.steps[3].status, 'done')
+  assert.equal(kwWorkspace.workflow.steps[4].status, 'done')
 }
 
 async function waitForHealth() {

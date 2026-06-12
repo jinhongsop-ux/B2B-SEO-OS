@@ -26,6 +26,12 @@ import {
   buildB2bContextPrompt,
   submitB2bContext,
   reviewB2bContext,
+  buildSeedKeywordPlanPrompt,
+  submitSeedKeywordPlan,
+  resetSeedKeywordPlan,
+  importKeywords,
+  generateCleaningRun,
+  reviewCleaningRun,
 } from './agent-workflow-actions.mjs'
 import {
   SiteReadingError,
@@ -190,6 +196,154 @@ async function routeRequest(request, response) {
       return
     }
     sendJson(response, 200, { snapshot })
+    return
+  }
+
+  if (request.method === 'GET' && pathname === '/api/seed-keyword-plan') {
+    const state = await workspaceStore.readState()
+    sendJson(response, 200, { seedKeywordPlan: state.seedKeywordPlan })
+    return
+  }
+
+  if (request.method === 'GET' && pathname === '/api/seed-keyword-plan/prompt') {
+    const state = await workspaceStore.readState()
+    try {
+      const prompt = buildSeedKeywordPlanPrompt(state)
+      sendJson(response, 200, { prompt })
+    } catch (error) {
+      if (error instanceof AgentWorkflowError) {
+        sendError(response, error.statusCode, error.code, error.message)
+        return
+      }
+      throw error
+    }
+    return
+  }
+
+  if (request.method === 'POST' && pathname === '/api/seed-keyword-plan/generate') {
+    const body = await readJsonBody(request)
+    if (body.error) {
+      sendError(response, 400, 'bad_json', body.error)
+      return
+    }
+    try {
+      const { state, result } = await workspaceStore.updateState((draft) => submitSeedKeywordPlan(draft, body.value))
+      sendJson(response, 201, {
+        seedKeywordPlan: result,
+        workspace: toWorkspaceView(state),
+        workflow: deriveWorkflow(state),
+      })
+    } catch (error) {
+      if (error instanceof AgentWorkflowError) {
+        sendError(response, error.statusCode, error.code, error.message)
+        return
+      }
+      throw error
+    }
+    return
+  }
+
+  if (request.method === 'POST' && pathname === '/api/seed-keyword-plan/reset') {
+    try {
+      const { state, result } = await workspaceStore.updateState((draft) => resetSeedKeywordPlan(draft))
+      sendJson(response, 200, {
+        result,
+        workspace: toWorkspaceView(state),
+        workflow: deriveWorkflow(state),
+      })
+    } catch (error) {
+      if (error instanceof AgentWorkflowError) {
+        sendError(response, error.statusCode, error.code, error.message)
+        return
+      }
+      throw error
+    }
+    return
+  }
+
+  // ── S5 关键词导入 ──
+
+  if (request.method === 'POST' && pathname === '/api/keywords/import') {
+    const body = await readJsonBody(request)
+    if (body.error) {
+      sendError(response, 400, 'bad_json', body.error)
+      return
+    }
+    try {
+      const { state, result } = await workspaceStore.updateState((draft) => importKeywords(draft, body.value))
+      sendJson(response, 201, {
+        ...result,
+        workspace: toWorkspaceView(state),
+        workflow: deriveWorkflow(state),
+      })
+    } catch (error) {
+      if (error instanceof AgentWorkflowError) {
+        sendError(response, error.statusCode, error.code, error.message)
+        return
+      }
+      throw error
+    }
+    return
+  }
+
+  if (request.method === 'GET' && pathname === '/api/keywords') {
+    const state = await workspaceStore.readState()
+    sendJson(response, 200, {
+      keywords: state.keywords,
+      importBatches: state.keywordImportBatches,
+    })
+    return
+  }
+
+  // ── S6 关键词清洗 ──
+
+  if (request.method === 'POST' && pathname === '/api/keywords/clean') {
+    try {
+      const { state, result } = await workspaceStore.updateState((draft) => generateCleaningRun(draft, {}))
+      sendJson(response, 201, {
+        cleaningRun: result,
+        workspace: toWorkspaceView(state),
+        workflow: deriveWorkflow(state),
+      })
+    } catch (error) {
+      if (error instanceof AgentWorkflowError) {
+        sendError(response, error.statusCode, error.code, error.message)
+        return
+      }
+      throw error
+    }
+    return
+  }
+
+  if (request.method === 'GET' && pathname === '/api/keywords/cleaning-runs') {
+    const state = await workspaceStore.readState()
+    sendJson(response, 200, { cleaningRuns: state.keywordCleaningRuns })
+    return
+  }
+
+  // ── S7 关键词审核入库 ──
+
+  const cleaningReviewMatch = pathname.match(/^\/api\/keywords\/cleaning-runs\/([^/]+)\/review$/)
+  if (request.method === 'POST' && cleaningReviewMatch) {
+    const body = await readJsonBody(request)
+    if (body.error) {
+      sendError(response, 400, 'bad_json', body.error)
+      return
+    }
+    try {
+      const { state, result } = await workspaceStore.updateState((draft) => reviewCleaningRun(draft, decodeURIComponent(cleaningReviewMatch[1]), body.value))
+      sendJson(response, 200, {
+        cleaningRun: result,
+        workspace: toWorkspaceView(state),
+        workflow: deriveWorkflow(state),
+      })
+    } catch (error) {
+      if (error instanceof AgentWorkflowError) {
+        sendError(response, error.statusCode, error.code, error.message)
+        return
+      }
+      throw error
+    }
     return
   }
 
