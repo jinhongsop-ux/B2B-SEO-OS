@@ -1,0 +1,67 @@
+{
+  "$schema": "brand-voice-b2b-v1",
+  "description": "B2B 品牌语言风格与页面表达规则，对应 D2-B 产出",
+  "brandName": "",
+  "tagline": "",
+  "brandPersonality": [],
+  "toneOfVoice": {
+    "overall": "",
+    "formality": "",
+    "formalityOptions": ["formal", "semi_formal", "professional_friendly"],
+    "technicalDepth": "",
+    "technicalDepthOptions": ["high", "moderate", "accessible"],
+    "emotionalTone": "",
+    "emotionalToneOptions": ["confident", "warm", "authoritative", "practical"]
+  },
+  "mustSay": [
+    {
+      "message": "",
+      "reason": "",
+      "applicablePages": []
+    }
+  ],
+  "mustNotSay": [
+    {
+      "phrase": "",
+      "reason": "",
+      "safeAlternative": ""
+    }
+  ],
+  "pageToneRules": [
+    {
+      "pageType": "",
+      "pageTypeOptions": [
+        "homepage", "product_category", "product_detail", "solution",
+        "application", "capability", "quality", "about", "factory",
+        "contact", "rfq", "blog", "faq"
+      ],
+      "tone": "",
+      "doInclude": [],
+      "avoid": [],
+      "ctaStyle": ""
+    }
+  ],
+  "vocabularyGuide": {
+    "preferredTerms": [
+      { "term": "", "context": "" }
+    ],
+    "avoidedTerms": [
+      { "term": "", "reason": "" }
+    ],
+    "industryJargonLevel": "",
+    "industryJargonLevelOptions": ["heavy", "moderate", "minimal"]
+  },
+  "writingRules": {
+    "sentenceLength": "",
+    "paragraphLength": "",
+    "bulletPointStyle": "",
+    "headingStyle": "",
+    "ctaFormat": "",
+    "evidenceIntegration": ""
+  },
+  "translationNotes": {
+    "primaryLanguage": "en",
+    "secondaryLanguages": [],
+    "culturalAdaptations": []
+  }
+}

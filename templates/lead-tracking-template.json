@@ -1,0 +1,71 @@
+{
+  "$schema": "lead-tracking-v1",
+  "description": "B2B 询盘跟踪记录模板，对应 D8 产出",
+  "trackingId": "",
+  "inquiryDate": "",
+  "source": {
+    "page": "",
+    "pageType": "",
+    "pageTypeOptions": [
+      "home", "product_category", "product_detail", "solution",
+      "application", "capability", "about", "contact", "rfq",
+      "blog", "faq", "landing_page"
+    ],
+    "channel": "",
+    "channelOptions": [
+      "rfq_form", "contact_form", "whatsapp", "email",
+      "catalog_download", "sample_request", "phone", "live_chat"
+    ],
+    "utm_source": "",
+    "utm_medium": "",
+    "utm_campaign": ""
+  },
+  "contact": {
+    "name": "",
+    "company": "",
+    "email": "",
+    "phone": "",
+    "whatsapp": "",
+    "country": "",
+    "jobTitle": ""
+  },
+  "inquiry": {
+    "productInterest": "",
+    "productLine": "",
+    "quantity": "",
+    "application": "",
+    "customRequirements": "",
+    "timeline": "",
+    "budget": "",
+    "message": ""
+  },
+  "qualification": {
+    "qualityScore": null,
+    "qualityGrade": "",
+    "qualityGradeOptions": ["hot", "warm", "cold", "spam", "competitor"],
+    "isTargetCustomer": null,
+    "hasBudget": null,
+    "hasTimeline": null,
+    "notes": ""
+  },
+  "followUp": {
+    "status": "",
+    "statusOptions": [
+      "new", "contacted", "responded", "quote_sent",
+      "sample_sent", "negotiating", "won", "lost",
+      "on_hold", "invalid"
+    ],
+    "assignedTo": "",
+    "firstResponseTime": "",
+    "lastContactDate": "",
+    "nextAction": "",
+    "followUpNotes": ""
+  },
+  "seoInsight": {
+    "landingKeyword": "",
+    "landingPageRank": null,
+    "conversionPath": [],
+    "timeOnSiteBeforeInquiry": null,
+    "pagesViewed": null
+  }
+}

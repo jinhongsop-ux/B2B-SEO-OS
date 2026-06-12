@@ -1,0 +1,172 @@
+{
+  "promptId": "d1a-industry-cognition",
+  "name": "B2B 行业与采购认知表",
+  "nameEn": "B2B Industry and Procurement Cognition",
+  "category": "s3_b2b_context",
+  "version": "1.0",
+  "requiresHumanReview": true,
+  "canCreateTasks": false,
+  "canWriteWordPress": false,
+  "targetAgent": "external",
+  "workflowStepId": "b2b_context",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "industryNameCn": {
+        "type": "string",
+        "description": "行业/品类名称（中文）"
+      },
+      "industryNameEn": {
+        "type": "string",
+        "description": "行业/品类名称（英文）"
+      },
+      "siteDomain": {
+        "type": "string",
+        "description": "站点域名"
+      },
+      "targetMarket": {
+        "type": "string",
+        "description": "目标市场"
+      },
+      "supplyChainIdentity": {
+        "type": "string",
+        "enum": ["工厂", "贸易商", "OEM供应商", "批发商", "待定"],
+        "description": "供应链身份"
+      },
+      "supportsOemOdm": {
+        "type": "string",
+        "description": "是否支持 OEM/ODM"
+      },
+      "fillerName": {
+        "type": "string",
+        "description": "填表人"
+      },
+      "competitorDomains": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "竞品域名（可选，1-3个；留空则自行搜索）"
+      }
+    },
+    "required": [
+      "industryNameCn",
+      "industryNameEn",
+      "siteDomain",
+      "targetMarket",
+      "supplyChainIdentity",
+      "fillerName"
+    ]
+  },
+  "outputSchema": {
+    "schemaName": "d1a_industry_cognition_v1",
+    "type": "object",
+    "properties": {
+      "basicInfo": {
+        "type": "object",
+        "description": "基本信息：域名、品类、市场、身份、填表人、日期"
+      },
+      "productIndustryOverview": {
+        "type": "object",
+        "description": "产品与行业是什么",
+        "properties": {
+          "oneLineDescription": { "type": "string" },
+          "productCategories": { "type": "array", "items": { "type": "string" } },
+          "commonMaterials": { "type": "array", "items": { "type": "string" } },
+          "coreSpecs": { "type": "array", "items": { "type": "string" } },
+          "keyProcesses": { "type": "array", "items": { "type": "string" } },
+          "applicationIndustries": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "buyerProfiles": {
+        "type": "array",
+        "description": "采购方角色（4-6类）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "role": { "type": "string" },
+            "companyType": { "type": "string" },
+            "procurementGoal": { "type": "string" },
+            "keyMetrics": { "type": "string" },
+            "commonConcerns": { "type": "string" },
+            "inquiryTrigger": { "type": "string" }
+          }
+        }
+      },
+      "procurementDecisionChain": {
+        "type": "array",
+        "description": "采购决策链路",
+        "items": {
+          "type": "object",
+          "properties": {
+            "stage": { "type": "string" },
+            "buyerNeeds": { "type": "string" },
+            "websitePage": { "type": "string" },
+            "cta": { "type": "string" }
+          }
+        }
+      },
+      "supplierScreeningCriteria": {
+        "type": "array",
+        "description": "供应商筛选标准（10-15条）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "criterion": { "type": "string" },
+            "whyBuyerCares": { "type": "string" },
+            "howWebsiteProvesIt": { "type": "string" }
+          }
+        }
+      },
+      "marketOverview": {
+        "type": "object",
+        "description": "市场与竞争速览"
+      },
+      "competitorOverview": {
+        "type": "array",
+        "description": "竞品速览（3个）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "domain": { "type": "string" },
+            "positioning": { "type": "string" },
+            "mainProductLines": { "type": "string" },
+            "solutionDirection": { "type": "string" },
+            "trustProof": { "type": "string" },
+            "ctaMethod": { "type": "string" },
+            "contentTopics": { "type": "string" },
+            "ourAdvantage": { "type": "string" }
+          }
+        }
+      },
+      "weekOneActions": {
+        "type": "array",
+        "description": "本周执行建议（5-8条）",
+        "items": { "type": "string" }
+      }
+    },
+    "required": [
+      "basicInfo",
+      "productIndustryOverview",
+      "buyerProfiles",
+      "procurementDecisionChain",
+      "supplierScreeningCriteria",
+      "marketOverview",
+      "competitorOverview",
+      "weekOneActions"
+    ]
+  },
+  "forbiddenActions": [
+    "不输出关键词列表，关键词规划留到 D3",
+    "不使用 DTC 术语：爆款、买家秀、限时折扣、购物车转化",
+    "不要虚构证书、工厂、客户或案例"
+  ],
+  "humanChecklist": [
+    "确认产品与行业描述是否准确",
+    "验证采购角色画像是否覆盖实际客户",
+    "检查竞品分析是否选择了真正的对标对象",
+    "核实供应商筛选标准是否反映真实采购决策因素",
+    "确认本周执行建议是否可执行"
+  ],
+  "markdownTemplate": "# d1a-industry-cognition\n\n# 角色定义\n你是一名资深 B2B 跨境行业分析师，熟悉海外采购决策、供应商评估、OEM/ODM 供应链、B2B 独立站 SEO 与询盘转化。\n你的任务是帮运营人员快速完成行业与采购认知表，让他们在 60 分钟内理解：产品是什么、谁在采购、为什么询盘、如何判断供应商、竞品怎么承接转化。\n\n# 输入信息\n行业/品类名称（中文）：【填写】\n行业/品类名称（英文）：【填写】\n站点域名：【填写】\n目标市场：【填写】\n供应链身份：【工厂/贸易商/OEM供应商/批发商/待定】\n是否支持 OEM/ODM：【填写】\n填表人：【填写】\n竞品域名（可选）：【如已知填写 1-3 个；留空则自行搜索】\n\n# 输出结构\n严格按以下 8 个模块顺序输出，全部中文，专业术语保留英文。不要输出开场白或总结语。\n\n## 一、基本信息\n站点域名 / 品类名称（中文）/ 品类名称（英文）/ 目标市场 / 供应链身份 / 填表人 / 填表日期。\n\n## 二、产品与行业是什么\n用一句话描述这个 B2B 产品或服务：\n[产品/服务] 是面向 [企业客户类型] 的 [供应/制造/定制/解决方案]，用于解决 [采购或应用问题]，核心价值是 [质量/交期/定制/成本/合规/项目落地]。\n列出主要产品分类、常见材料、核心规格、关键工艺、常见应用行业。\n\n## 三、采购方是谁\n列出 4-6 类采购角色：角色 / 公司类型 / 采购目标 / 关注指标 / 常见顾虑 / 询盘触发点。\n必须包含可能的 buyer、采购经理、品牌方、分销商、工程/技术角色、老板/负责人。\n\n## 四、采购决策链路\n按阶段输出：需求产生 → 供应商搜索 → 初步筛选 → 参数/报价确认 → 样品/打样 → 内部审批 → 下单。\n每个阶段说明：采购方需要什么信息、网站应该提供什么页面、CTA 应该是什么。\n\n## 五、供应商筛选标准\n列出 10-15 条：标准 / 采购方为什么关心 / 网站应如何证明。\n必须覆盖 MOQ、lead time、customization、certification、quality control、sample policy、packaging、export experience、communication、after-sales。\n\n## 六、市场与竞争速览\n市场主要销售渠道、常见供应商类型、主流价格/订单层级、交期范围、季节性或项目周期、市场趋势。\n\n## 七、竞品速览\n如未提供竞品域名，自行搜索 3 个最典型的 B2B 独立站或供应商站。\n每个竞品格式：域名 / 公司定位 / 主推产品线 / 解决方案方向 / 信任证明 / CTA 方式 / 内容话题 / 我们能做得更好的地方。\n\n## 八、本周执行建议\n输出 5-8 条具体建议，格式：本站当前机会 → 本周重点 → 对应页面或素材。\n\n# 输出规范\n- 全部中文，专业术语保留英文。\n- 不输出关键词列表，关键词规划留到 D3。\n- 不使用 DTC 术语：爆款、买家秀、限时折扣、购物车转化。\n- 不要虚构证书、工厂、客户或案例。",
+  "downstreamStages": ["s3_b2b_context"],
+  "relatedPrompts": ["d1b-category-knowledge"]
+}

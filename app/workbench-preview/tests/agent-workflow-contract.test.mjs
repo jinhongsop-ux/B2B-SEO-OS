@@ -129,6 +129,151 @@ async function main() {
   assert.equal(persisted.externalArtifacts.length, 1)
   assert.equal(persisted.ingestionRuns.length, 1)
   assert.equal(persisted.siteReadSnapshots.length, 1)
+
+  // ── S2 审计闭环 ──
+
+  const auditPackResponse = await postJson('/api/task-packs/generate', {
+    workflowStepId: 'audit',
+    taskType: 'site_audit',
+    targetAgent: 'chatgpt',
+    userInput: '请全面审计网站。'
+  })
+  assert.equal(auditPackResponse.status, 201)
+  assert.equal(auditPackResponse.body.taskPack.workflowStepId, 'audit')
+  assert.equal(auditPackResponse.body.taskPack.taskType, 'site_audit')
+  assert.match(auditPackResponse.body.taskPack.promptMarkdown, /site_audit_report_v1/)
+  assert.match(auditPackResponse.body.taskPack.promptMarkdown, /审计维度/)
+  assert.ok(auditPackResponse.body.taskPack.expectedArtifactSchema.requiredFields.includes('findings'))
+  assert.ok(auditPackResponse.body.taskPack.expectedArtifactSchema.requiredFields.includes('summary'))
+
+  const auditTaskPackId = auditPackResponse.body.taskPack.taskPackId
+
+  const auditArtifactResponse = await postJson('/api/artifacts', {
+    taskPackId: auditTaskPackId,
+    sourceAgent: 'chatgpt',
+    format: 'json',
+    rawContent: JSON.stringify({
+      schemaVersion: 'site_audit_report_v1',
+      summary: '首页价值主张不清晰，产品页缺少参数和 CTA，信任页面不足。',
+      moduleReports: [
+        { module: 'site_structure', status: 'has_issues', findins: ['导航缺少 Solutions 入口'] },
+        { module: 'homepage', status: 'has_issues', findins: ['价值主张模糊'] },
+      ],
+      findings: [
+        {
+          id: 'finding-001',
+          category: 'site_structure',
+          priority: 'blocking',
+          problem: '主导航缺少 Solutions 入口，B2B 采购方无法找到应用场景。',
+          affectedUrls: ['/'],
+          evidence: [{ url: '/', note: '主菜单无 Solutions 链接' }],
+          impact: '供应商词和应用词流量无法有效承接。',
+          recommendedAction: '在主导航增加 Solutions 一级入口。',
+          requiresDeveloper: false,
+        },
+        {
+          id: 'finding-002',
+          category: 'products',
+          priority: 'normal',
+          problem: '产品页面缺少技术参数表格。',
+          affectedUrls: ['/products/custom-metal-parts/'],
+          evidence: [{ url: '/products/custom-metal-parts/', note: '未检测到参数表格' }],
+          impact: '采购方无法快速评估是否匹配需求。',
+          recommendedAction: '为每个产品页面增加材质、公差、MOQ 等参数表。',
+          requiresDeveloper: false,
+        },
+      ],
+    }),
+  })
+  assert.equal(auditArtifactResponse.status, 201)
+  assert.equal(auditArtifactResponse.body.artifact.workflowStepId, 'audit')
+
+  const auditIngestionResponse = await postJson('/api/ingestion-runs', {
+    artifactId: auditArtifactResponse.body.artifact.artifactId,
+  })
+  assert.equal(auditIngestionResponse.status, 201)
+  assert.equal(auditIngestionResponse.body.ingestionRun.status, 'done')
+  assert.equal(auditIngestionResponse.body.ingestionRun.reviewDecision.decision, 'auto_approved')
+  assert.equal(auditIngestionResponse.body.ingestionRun.validationResult.valid, true)
+  assert.equal(auditIngestionResponse.body.ingestionRun.parsedObjects.auditReport.findings.length, 2)
+  assert.equal(auditIngestionResponse.body.ingestionRun.parsedObjects.auditReport.findings[0].priority, 'blocking')
+  assert.equal(auditIngestionResponse.body.ingestionRun.parsedObjects.auditReport.findings[1].priority, 'normal')
+
+  const reReviewResult = await postJson(`/api/ingestion-runs/${auditIngestionResponse.body.ingestionRun.ingestionRunId}/review`, {
+    decision: 'approved',
+  })
+  assert.equal(reReviewResult.status, 409)
+  assert.equal(reReviewResult.body.error.code, 'already_auto_approved')
+
+  const auditWorkspace = await getJson('/api/workspace')
+  assert.equal(auditWorkspace.workspace.auditRuns.length, 1)
+  assert.equal(auditWorkspace.workspace.auditFindings.length, 2)
+  assert.equal(auditWorkspace.workspace.auditFindings[0].status, 'blocking')
+  assert.equal(auditWorkspace.workspace.auditFindings[1].status, 'open')
+  assert.equal(auditWorkspace.workflow.currentStepId, 'b2b_context')
+
+  const auditRunsLatest = await getJson('/api/audit-runs/latest')
+  assert.equal(auditRunsLatest.auditRun.findingCount, 2)
+  assert.equal(auditRunsLatest.auditFindings.length, 2)
+
+  const finalPersisted = JSON.parse(await readFile(path.join(runtimeDir, 'workspace-state.json'), 'utf8'))
+  assert.equal(finalPersisted.auditRuns.length, 1)
+  assert.equal(finalPersisted.auditFindings.length, 2)
+  assert.equal(finalPersisted.taskPacks.length, 2)
+  assert.equal(finalPersisted.externalArtifacts.length, 2)
+  assert.equal(finalPersisted.ingestionRuns.length, 2)
+
+  // ── S3 B2B 上下文闭环 ──
+
+  const b2bPrompt = await getJson('/api/b2b-context/prompt')
+  assert.equal(typeof b2bPrompt.prompt, 'string')
+  assert.match(b2bPrompt.prompt, /B2B 上下文证据生成/)
+  assert.match(b2bPrompt.prompt, /b2b_context_evidence_v1/)
+
+  const b2bGenResponse = await postJson('/api/b2b-context/generate', {})
+  assert.equal(b2bGenResponse.status, 201)
+  assert.equal(b2bGenResponse.body.b2bContext.status, 'waiting_review')
+  assert.equal(b2bGenResponse.body.b2bContext.schemaVersion, 'b2b_context_evidence_v1')
+  assert.ok(b2bGenResponse.body.b2bContext.businessFacts.length > 0)
+  assert.ok(b2bGenResponse.body.b2bContext.productLines.length > 0)
+  assert.ok(b2bGenResponse.body.b2bContext.targetCustomers.length > 0)
+  assert.equal(b2bGenResponse.body.b2bContext.businessFacts[0].confirmed, false)
+  assert.equal(b2bGenResponse.body.workflow.currentStepId, 'b2b_context')
+  assert.equal(b2bGenResponse.body.workflow.steps[2].status, 'waiting_review')
+
+  const b2bGetResponse = await getJson('/api/b2b-context')
+  assert.equal(b2bGetResponse.b2bContext.status, 'waiting_review')
+
+  const b2bReviewIncomplete = await postJson('/api/b2b-context/review', {
+    decision: 'approved',
+    confirmedFactIds: [],
+    confirmedProductLineIds: [],
+    confirmedCustomerIds: [],
+  })
+  assert.equal(b2bReviewIncomplete.status, 409)
+  assert.equal(b2bReviewIncomplete.body.error.code, 'incomplete_confirmation')
+
+  const b2bReviewResponse = await postJson('/api/b2b-context/review', {
+    decision: 'approved',
+    reviewer: 'operator',
+    notes: '商业事实确认无误。',
+  })
+  assert.equal(b2bReviewResponse.status, 200)
+  assert.equal(b2bReviewResponse.body.b2bContext.status, 'done')
+  assert.equal(b2bReviewResponse.body.b2bContext.reviewDecision.decision, 'approved')
+  assert.ok(b2bReviewResponse.body.b2bContext.businessFacts.every((f) => f.confirmed))
+  assert.ok(b2bReviewResponse.body.b2bContext.productLines.every((pl) => pl.confirmed))
+  assert.ok(b2bReviewResponse.body.b2bContext.targetCustomers.every((tc) => tc.confirmed))
+  assert.equal(b2bReviewResponse.body.workflow.currentStepId, 'keyword_import')
+
+  const b2bDuplicate = await postJson('/api/b2b-context/generate', {})
+  assert.equal(b2bDuplicate.status, 409)
+  assert.equal(b2bDuplicate.body.error.code, 'context_exists')
+
+  const finalWorkspace = await getJson('/api/workspace')
+  assert.equal(finalWorkspace.workspace.b2bContext.status, 'done')
+  assert.equal(finalWorkspace.workflow.steps[2].status, 'done')
+  assert.equal(finalWorkspace.workflow.steps[3].status, 'ready')
 }
 
 async function waitForHealth() {

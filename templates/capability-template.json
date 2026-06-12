@@ -1,0 +1,85 @@
+{
+  "$schema": "capability-v1",
+  "description": "B2B 供应商生产能力与服务能力，对应 D2-C 产出",
+  "productCapabilities": [
+    {
+      "productLine": "",
+      "description": "",
+      "materials": [],
+      "specifications": [],
+      "applications": [],
+      "moq": "",
+      "leadTime": "",
+      "annualCapacity": ""
+    }
+  ],
+  "customizationCapabilities": [
+    {
+      "type": "",
+      "typeOptions": ["odm", "oem", "custom_size", "custom_material", "custom_color", "logo_printing", "custom_packaging", "design_from_drawing"],
+      "description": "",
+      "minimumOrder": "",
+      "leadTime": "",
+      "examples": []
+    }
+  ],
+  "manufacturingCapabilities": {
+    "equipment": [],
+    "productionLines": null,
+    "factoryArea": "",
+    "shifts": null,
+    "automationLevel": ""
+  },
+  "qualityControl": {
+    "system": "",
+    "systemOptions": ["iso_9001", "iso_14001", "iatf_16949", "other", "none"],
+    "inspectionPoints": [],
+    "testingEquipment": [],
+    "qcTeamSize": null,
+    "defectRate": "",
+    "thirdPartyInspection": false
+  },
+  "certifications": [
+    {
+      "name": "",
+      "issuingBody": "",
+      "validUntil": "",
+      "certificateNumber": "",
+      "scope": "",
+      "hasDocument": false,
+      "hasImage": false
+    }
+  ],
+  "samplePolicy": {
+    "available": true,
+    "freeSamples": false,
+    "sampleCost": "",
+    "sampleLeadTime": "",
+    "refundPolicy": "",
+    "shippingMethod": ""
+  },
+  "leadTime": {
+    "standard": "",
+    "custom": "",
+    "rush": "",
+    "factors": []
+  },
+  "packaging": {
+    "standard": "",
+    "custom": false,
+    "options": [],
+    "labeling": ""
+  },
+  "shipping": {
+    "methods": [],
+    "incoterms": [],
+    "portOfLoading": "",
+    "containerCapacity": ""
+  },
+  "salesSupport": {
+    "languages": [],
+    "responseTime": "",
+    "channels": [],
+    "afterSalesPolicy": ""
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "promptId": "d4a-product-line-record",
+  "name": "B2B 产品线记录表",
+  "nameEn": "B2B Product Line Record Sheet",
+  "category": "s9_page_repair",
+  "version": "1.0",
+  "requiresHumanReview": true,
+  "canCreateTasks": false,
+  "canWriteWordPress": false,
+  "targetAgent": "external",
+  "workflowStepId": "page_repair",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "brandOrCompanyName": {
+        "type": "string",
+        "description": "品牌/公司名"
+      },
+      "industryCategory": {
+        "type": "string",
+        "description": "行业/品类"
+      },
+      "targetMarket": {
+        "type": "string",
+        "description": "目标市场"
+      },
+      "primaryConversionGoal": {
+        "type": "string",
+        "description": "主转化目标"
+      },
+      "rawProductMaterials": {
+        "type": "string",
+        "description": "产品原始资料：可来自工厂目录、1688、供应商表、参数表、图片说明（粘贴）"
+      },
+      "d1d2RelatedSummary": {
+        "type": "string",
+        "description": "D1/D2 相关知识摘要（粘贴）"
+      },
+      "targetPageType": {
+        "type": "string",
+        "enum": ["产品线页", "产品详情页", "Custom页", "应用页"],
+        "description": "目标页面类型"
+      }
+    },
+    "required": [
+      "brandOrCompanyName",
+      "industryCategory",
+      "targetMarket",
+      "primaryConversionGoal",
+      "rawProductMaterials",
+      "targetPageType"
+    ]
+  },
+  "outputSchema": {
+    "schemaName": "d4a_product_line_record_v1",
+    "type": "object",
+    "properties": {
+      "productRecords": {
+        "type": "array",
+        "description": "产品线记录表（每个产品或产品线一行）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "skuOrInternalId": { "type": "string" },
+            "productLine": { "type": "string" },
+            "productName": { "type": "string" },
+            "pageType": { "type": "string" },
+            "targetUrl": { "type": "string" },
+            "primaryKeyword": { "type": "string" },
+            "secondaryKeywords": { "type": "array", "items": { "type": "string" } },
+            "shortPositioning": { "type": "string" },
+            "applications": { "type": "array", "items": { "type": "string" } },
+            "materials": { "type": "string" },
+            "keySpecifications": { "type": "array", "items": { "type": "string" } },
+            "customizationOptions": { "type": "string" },
+            "moq": { "type": "string" },
+            "leadTime": { "type": "string" },
+            "qualityControlPoints": { "type": "string" },
+            "packagingOptions": { "type": "string" },
+            "certificationsCompliance": { "type": "array", "items": { "type": "string" } },
+            "relatedSolutions": { "type": "array", "items": { "type": "string" } },
+            "relatedProducts": { "type": "array", "items": { "type": "string" } },
+            "mainCTA": { "type": "string" },
+            "faqSeeds": { "type": "array", "items": { "type": "string" } },
+            "metaTitle": { "type": "string" },
+            "metaDescription": { "type": "string" },
+            "imageNeeds": { "type": "array", "items": { "type": "string" } },
+            "evidenceNeeded": { "type": "array", "items": { "type": "string" } },
+            "notes": { "type": "string" }
+          }
+        }
+      }
+    },
+    "required": ["productRecords"]
+  },
+  "forbiddenActions": [
+    "英文字段内容可以直接用于网站",
+    "不知道的信息填 [需人工补充]，不要编造",
+    "Meta Title 控制在 50-60 字符左右，Meta Description 控制在 140-160 字符左右",
+    "Product Name 要 B2B 专业清晰，不要 DTC 情绪化"
+  ],
+  "humanChecklist": [
+    "确认产品记录是否覆盖所有主力产品线",
+    "验证产品名称是否 B2B 专业（非 DTC 风格）",
+    "检查 Meta Title/Description 字符长度是否合规",
+    "核实缺失字段是否标注了[需人工补充]",
+    "确认关键词是否与 D3 聚类结果一致"
+  ],
+  "markdownTemplate": "# d4a-product-line-record\n\n# 角色定义\n你是一名 B2B 产品信息整理专家，熟悉供应商网站产品页、WooCommerce 询盘模式、ACF 字段和 SEO 文案。\n你的任务是把原始产品资料整理成可建页的产品线记录表。\n\n# 输入信息\n品牌/公司名：【填写】\n行业/品类：【填写】\n目标市场：【填写】\n主转化目标：【填写】\n产品原始资料：【粘贴，可来自工厂目录、1688、供应商表、参数表、图片说明】\nD1/D2 相关知识摘要：【粘贴】\n目标页面类型：【产品线页/产品详情页/Custom页/应用页】\n\n# 输出字段\n请用表格输出，每个产品或产品线一行，字段如下：\nSKU/内部编号、Product Line、Product Name、Page Type、Target URL、Primary Keyword、Secondary Keywords、Short Positioning、Applications、Materials、Key Specifications、Customization Options、MOQ、Lead Time、Quality Control Points、Packaging Options、Certifications/Compliance、Related Solutions、Related Products、Main CTA、FAQ Seeds、Meta Title、Meta Description、Image Needs、Evidence Needed、Notes。\n\n# 写作规则\n- 英文字段内容可以直接用于网站。\n- 不知道的信息填 [需人工补充]，不要编造。\n- Meta Title 控制在 50-60 字符左右，Meta Description 控制在 140-160 字符左右。\n- Product Name 要 B2B 专业清晰，不要 DTC 情绪化。",
+  "downstreamStages": ["s9_page_repair"],
+  "relatedPrompts": ["d4-0-product-page-framework", "d4b-page-priority-scoring", "d4c-page-data-pack"]
+}

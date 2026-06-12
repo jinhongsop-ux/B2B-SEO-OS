@@ -1,0 +1,105 @@
+{
+  "$schema": "links-v1",
+  "description": "B2B 网站内链统一管理库，对应 D3/D5 产出",
+  "home": {
+    "url": "/",
+    "internalLinks": []
+  },
+  "productCategories": [
+    {
+      "url": "",
+      "name": "",
+      "linksTo": [],
+      "linkedFrom": []
+    }
+  ],
+  "productPages": [
+    {
+      "url": "",
+      "name": "",
+      "productLine": "",
+      "linksTo": [],
+      "linkedFrom": []
+    }
+  ],
+  "solutions": [
+    {
+      "url": "",
+      "name": "",
+      "linksTo": [],
+      "linkedFrom": []
+    }
+  ],
+  "applications": [
+    {
+      "url": "",
+      "name": "",
+      "industry": "",
+      "linksTo": [],
+      "linkedFrom": []
+    }
+  ],
+  "customPages": [
+    {
+      "url": "",
+      "name": "",
+      "linksTo": [],
+      "linkedFrom": []
+    }
+  ],
+  "qualityPages": [
+    {
+      "url": "",
+      "name": "",
+      "type": "",
+      "typeOptions": ["quality_control", "certification", "testing", "process"],
+      "linksTo": [],
+      "linkedFrom": []
+    }
+  ],
+  "trustPages": [
+    {
+      "url": "",
+      "name": "",
+      "type": "",
+      "typeOptions": ["about", "factory", "team", "history", "partners"],
+      "linksTo": [],
+      "linkedFrom": []
+    }
+  ],
+  "resources": [
+    {
+      "url": "",
+      "name": "",
+      "contentType": "",
+      "contentTypeOptions": ["blog", "guide", "whitepaper", "video", "download"],
+      "linksTo": [],
+      "linkedFrom": []
+    }
+  ],
+  "caseStudies": [
+    {
+      "url": "",
+      "name": "",
+      "industry": "",
+      "linksTo": [],
+      "linkedFrom": []
+    }
+  ],
+  "rfqPages": [
+    {
+      "url": "",
+      "name": "",
+      "linksTo": [],
+      "linkedFrom": []
+    }
+  ],
+  "contactPages": [
+    {
+      "url": "",
+      "name": "",
+      "linksTo": [],
+      "linkedFrom": []
+    }
+  ]
+}

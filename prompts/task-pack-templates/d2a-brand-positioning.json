@@ -1,0 +1,126 @@
+{
+  "promptId": "d2a-brand-positioning",
+  "name": "B2B 品牌命名与定位",
+  "nameEn": "B2B Brand Naming and Positioning",
+  "category": "s3_b2b_context",
+  "version": "1.0",
+  "requiresHumanReview": true,
+  "canCreateTasks": false,
+  "canWriteWordPress": false,
+  "targetAgent": "external",
+  "workflowStepId": "b2b_context",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "industryNameCn": {
+        "type": "string",
+        "description": "行业/品类名称（中文）"
+      },
+      "industryNameEn": {
+        "type": "string",
+        "description": "行业/品类名称（英文）"
+      },
+      "targetMarket": {
+        "type": "string",
+        "description": "目标市场"
+      },
+      "supplyChainIdentity": {
+        "type": "string",
+        "enum": ["工厂", "贸易商", "OEM供应商", "批发商", "解决方案商"],
+        "description": "供应链身份"
+      },
+      "d1Output": {
+        "type": "string",
+        "description": "D1 行业与采购认知表输出（完整粘贴）"
+      },
+      "existingEnglishName": {
+        "type": "string",
+        "description": "是否已有公司英文名（没有则写无）"
+      },
+      "domainIncludesCategoryKeyword": {
+        "type": "string",
+        "enum": ["是", "否", "待定"],
+        "description": "是否希望域名包含品类词"
+      }
+    },
+    "required": [
+      "industryNameCn",
+      "industryNameEn",
+      "targetMarket",
+      "supplyChainIdentity",
+      "d1Output"
+    ]
+  },
+  "outputSchema": {
+    "schemaName": "d2a_brand_positioning_v1",
+    "type": "object",
+    "properties": {
+      "namingDirectionSummary": {
+        "type": "string",
+        "description": "B2B 命名方向总判断（30-50字）"
+      },
+      "professionalNaming": {
+        "type": "array",
+        "description": "稳健专业型命名方案",
+        "items": {
+          "type": "object",
+          "properties": {
+            "brandName": { "type": "string" },
+            "pronunciation": { "type": "string" },
+            "namingLogic": { "type": "string" },
+            "recommendedDomains": { "type": "array", "items": { "type": "string" } },
+            "domainAvailabilityNote": { "type": "string" },
+            "positioningStatement": { "type": "string" },
+            "suitablePageStyle": { "type": "string" },
+            "suitableCustomerType": { "type": "string" },
+            "advantages": { "type": "string" },
+            "risks": { "type": "string" },
+            "seoScalability": { "type": "string" }
+          }
+        }
+      },
+      "categoryClearNaming": {
+        "type": "array",
+        "description": "品类清晰型命名方案",
+        "items": { "type": "object" }
+      },
+      "differentiatedNaming": {
+        "type": "array",
+        "description": "差异化品牌型命名方案",
+        "items": { "type": "object" }
+      },
+      "finalRecommendation": {
+        "type": "object",
+        "description": "最终选择建议",
+        "properties": {
+          "bestOverall": { "type": "string" },
+          "bestOverallReason": { "type": "string" },
+          "bestForQuickValidation": { "type": "string" },
+          "bestForQuickValidationReason": { "type": "string" }
+        }
+      }
+    },
+    "required": [
+      "namingDirectionSummary",
+      "professionalNaming",
+      "categoryClearNaming",
+      "differentiatedNaming",
+      "finalRecommendation"
+    ]
+  },
+  "forbiddenActions": [
+    "不使用表格，纯文字分段",
+    "命名必须满足：发音自然、专业可信、不过度 DTC、适合报价单和采购邮件",
+    "品牌名、域名和定位句保留英文",
+    "全部中文输出"
+  ],
+  "humanChecklist": [
+    "确认命名方案是否覆盖三种不同类型",
+    "验证域名建议是否真实可用",
+    "检查定位句是否准确反映供应商身份",
+    "确认最终建议是否有充分理由"
+  ],
+  "markdownTemplate": "# d2a-brand-positioning\n\n# 角色定义\n你是一名资深 B2B 品牌策略师，熟悉跨境供应商站、工厂站、OEM/ODM 站、批发获客站的命名和定位。\n任务：基于 D1 行业与采购认知，生成适合 B2B 独立站的品牌/公司命名方案与定位方向。\n\n# 输入信息\n行业/品类名称（中文）：【填写】\n行业/品类名称（英文）：【填写】\n目标市场：【填写】\n供应链身份：【工厂/贸易商/OEM供应商/批发商/解决方案商】\nD1 行业与采购认知表输出：【完整粘贴】\n是否已有公司英文名：【填写，没有则写无】\n是否希望域名包含品类词：【是/否/待定】\n\n# 任务说明\n输出 5-8 个命名方案。每个方案必须是真正不同的方向，不是同一词根变体。\n方案分三档：\n【稳健专业型】适合长期 B2B 供应商站。\n【品类清晰型】利于 SEO 和采购识别。\n【差异化品牌型】适合未来做品牌化和内容资产。\n\n# 输出结构\n先输出一段 30-50 字的 B2B 命名方向总判断，再输出具体方案。\n\n## 【稳健专业型】\n每个方案格式：\n品牌名 / 发音指引 / 命名逻辑 / 推荐域名(2-3个) / 域名可用性提醒\n一句话定位：For [buyer type], [Brand] is a [supplier/manufacturer/solution provider] that helps [business outcome].\n适合页面风格 / 适合客户类型 / 优势 / 风险 / SEO 可拓展性。\n\n## 【品类清晰型】\n同上，额外说明：品类词植入方式与避免廉价感的方法。\n\n## 【差异化品牌型】\n同上，额外说明：未来可扩展的产品线或解决方案方向。\n\n## 最终选择建议\n如果只能选 1 个，建议选哪个？为什么？\n如果要低预算快速验证，建议选哪个？为什么？\n\n# 输出规范\n- 全部中文输出，品牌名、域名和定位句保留英文。\n- 不使用表格，纯文字分段。\n- 命名必须满足：发音自然、专业可信、不过度 DTC、适合报价单和采购邮件。",
+  "downstreamStages": ["s3_b2b_context"],
+  "relatedPrompts": ["d2b-brand-voice", "d2c-capability-evidence"]
+}

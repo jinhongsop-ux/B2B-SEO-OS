@@ -1,0 +1,96 @@
+{
+  "$schema": "knowledge-b2b-v1",
+  "description": "B2B 行业与采购知识库，对应 D1 产出",
+  "terminology": [
+    {
+      "term": "",
+      "definition": "",
+      "category": "",
+      "categoryOptions": ["material", "process", "certification", "parameter", "industry_term"],
+      "language": "en"
+    }
+  ],
+  "applications": [
+    {
+      "industry": "",
+      "useCase": "",
+      "endProduct": "",
+      "relevantProducts": []
+    }
+  ],
+  "materials": [
+    {
+      "name": "",
+      "properties": "",
+      "commonUses": [],
+      "certifications": []
+    }
+  ],
+  "processes": [
+    {
+      "name": "",
+      "description": "",
+      "applicableProducts": [],
+      "advantages": [],
+      "limitations": []
+    }
+  ],
+  "specifications": [
+    {
+      "name": "",
+      "unit": "",
+      "typicalRange": "",
+      "importance": ""
+    }
+  ],
+  "buyerFAQ": [
+    {
+      "question": "",
+      "answer": "",
+      "category": "",
+      "categoryOptions": ["moq", "lead_time", "sample", "price", "quality", "certification", "shipping", "customization", "payment"],
+      "intent": "informational"
+    }
+  ],
+  "objections": [
+    {
+      "concern": "",
+      "mitigation": "",
+      "evidenceNeeded": ""
+    }
+  ],
+  "authorityFacts": [
+    {
+      "fact": "",
+      "source": "",
+      "usableInContent": true
+    }
+  ],
+  "competitorContext": {
+    "competitors": [
+      {
+        "domain": "",
+        "positioning": "",
+        "strengths": [],
+        "weaknesses": [],
+        "pageStructure": "",
+        "trustSignals": [],
+        "ctaStrategy": ""
+      }
+    ]
+  },
+  "procurementJourney": {
+    "roles": [
+      {
+        "role": "",
+        "responsibility": "",
+        "decisionWeight": "",
+        "keyConcerns": [],
+        "informationNeeds": []
+      }
+    ],
+    "decisionChain": [],
+    "triggerPoints": [],
+    "selectionCriteria": []
+  }
+}

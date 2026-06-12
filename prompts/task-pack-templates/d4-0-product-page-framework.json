@@ -1,0 +1,170 @@
+{
+  "promptId": "d4-0-product-page-framework",
+  "name": "B2B 产品页建站执行框架",
+  "nameEn": "B2B Product Page Build Execution Framework",
+  "category": "s9_page_repair",
+  "version": "1.0",
+  "requiresHumanReview": true,
+  "canCreateTasks": false,
+  "canWriteWordPress": false,
+  "targetAgent": "external",
+  "workflowStepId": "page_repair",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "siteDomain": {
+        "type": "string",
+        "description": "站点域名"
+      },
+      "industryCategory": {
+        "type": "string",
+        "description": "行业/品类"
+      },
+      "targetMarket": {
+        "type": "string",
+        "description": "目标市场"
+      },
+      "supplyChainIdentity": {
+        "type": "string",
+        "description": "供应链身份"
+      },
+      "d3UrlMappingAndP0P1List": {
+        "type": "string",
+        "description": "D3 URL 映射表与 P0/P1 页面清单（粘贴）"
+      },
+      "d1KnowledgeSummary": {
+        "type": "string",
+        "description": "D1 行业知识库摘要（粘贴）"
+      },
+      "d2CapabilitySummary": {
+        "type": "string",
+        "description": "D2 公司能力与证据摘要（粘贴）"
+      },
+      "realProductMaterialStatus": {
+        "type": "string",
+        "description": "真实产品资料情况：参数/图片/目录/证书/案例是否已有"
+      }
+    },
+    "required": [
+      "siteDomain",
+      "industryCategory",
+      "targetMarket",
+      "supplyChainIdentity",
+      "d3UrlMappingAndP0P1List",
+      "d1KnowledgeSummary",
+      "d2CapabilitySummary"
+    ]
+  },
+  "outputSchema": {
+    "schemaName": "d4_0_product_page_framework_v1",
+    "type": "object",
+    "properties": {
+      "p0BuildList": {
+        "type": "array",
+        "description": "模块1：P0 建页清单",
+        "items": {
+          "type": "object",
+          "properties": {
+            "pageType": { "type": "string" },
+            "pageName": { "type": "string" },
+            "url": { "type": "string" },
+            "primaryKeyword": { "type": "string" },
+            "pageGoal": { "type": "string" },
+            "primaryCTA": { "type": "string" },
+            "requiredMaterials": { "type": "string" },
+            "missingMaterials": { "type": "string" },
+            "responsiblePerson": { "type": "string" }
+          }
+        }
+      },
+      "productLineStructure": {
+        "type": "array",
+        "description": "模块2：产品线结构",
+        "items": {
+          "type": "object",
+          "properties": {
+            "productLineName": { "type": "string" },
+            "includedProducts": { "type": "array", "items": { "type": "string" } },
+            "applicationIndustries": { "type": "array", "items": { "type": "string" } },
+            "keySpecs": { "type": "array", "items": { "type": "string" } },
+            "customizationOptions": { "type": "string" },
+            "moq": { "type": "string" },
+            "leadTime": { "type": "string" },
+            "relatedSolutions": { "type": "array", "items": { "type": "string" } },
+            "priority": { "type": "string" }
+          }
+        }
+      },
+      "productPageTemplate": {
+        "type": "array",
+        "description": "模块3：产品页模板（B2B 标准模块顺序）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "moduleName": { "type": "string" },
+            "whatToWrite": { "type": "string" },
+            "materialsNeeded": { "type": "string" }
+          }
+        }
+      },
+      "customOemPageStructure": {
+        "type": "object",
+        "description": "模块4：Custom/OEM 页面结构"
+      },
+      "rfqFormFieldSuggestion": {
+        "type": "array",
+        "description": "模块5：RFQ 表单字段建议",
+        "items": {
+          "type": "object",
+          "properties": {
+            "fieldName": { "type": "string" },
+            "required": { "type": "boolean" },
+            "purpose": { "type": "string" },
+            "usedForLeadScoring": { "type": "boolean" },
+            "frontendHint": { "type": "string" }
+          }
+        }
+      },
+      "materialGapList": {
+        "type": "array",
+        "description": "模块6：资料缺口清单",
+        "items": {
+          "type": "object",
+          "properties": {
+            "priority": { "type": "string" },
+            "materialType": { "type": "string" },
+            "description": { "type": "string" }
+          }
+        }
+      },
+      "executionSchedule": {
+        "type": "array",
+        "description": "模块7：执行顺序（Day 3-Day 4）",
+        "items": { "type": "string" }
+      }
+    },
+    "required": [
+      "p0BuildList",
+      "productLineStructure",
+      "productPageTemplate",
+      "customOemPageStructure",
+      "rfqFormFieldSuggestion",
+      "materialGapList",
+      "executionSchedule"
+    ]
+  },
+  "forbiddenActions": [
+    "不建议直接上架 50 个 SKU，除非输入明确说明已有完整产品数据库",
+    "不使用 Add to Cart / Buy Now 作为核心转化",
+    "所有页面必须有 B2B CTA"
+  ],
+  "humanChecklist": [
+    "确认 P0 建页清单是否覆盖核心商业页",
+    "验证产品线结构是否反映实际产品线",
+    "检查 RFQ 表单字段是否平衡线索质量与填写体验",
+    "核实资料缺口清单是否完整且按优先级排列"
+  ],
+  "markdownTemplate": "# d4-0-product-page-framework\n\n# 角色定义\n你是一名 B2B 网站产品架构师和询盘转化顾问。\n你的任务是把 D1/D2/D3 的战略信息转化为实际建站执行框架：哪些产品线先做，哪些能力页先做，哪些 RFQ/样品/目录页面必须上线。\n\n# 输入信息\n站点域名：【填写】\n行业/品类：【填写】\n目标市场：【填写】\n供应链身份：【填写】\nD3 URL 映射表与 P0/P1 页面清单：【粘贴】\nD1 行业知识库摘要：【粘贴】\nD2 公司能力与证据摘要：【粘贴】\n真实产品资料情况：【参数/图片/目录/证书/案例是否已有】\n\n# 输出结构\n\n## 模块 1：P0 建页清单\n字段：页面类型 / 页面名称 / URL / 主关键词 / 页面目标 / 主 CTA / 必需素材 / 缺失素材 / 负责人。\n\n## 模块 2：产品线结构\n按产品线输出：产品线名称 / 包含产品 / 应用行业 / 关键规格 / 定制选项 / MOQ / Lead Time / 相关解决方案 / 优先级。\n\n## 模块 3：产品页模板\n输出 B2B 产品页标准模块顺序：Hero、Overview、Applications、Specifications、Customization、Quality Control、Packaging、FAQ、Related Products、CTA。\n每个模块说明写什么、需要什么素材。\n\n## 模块 4：Custom/OEM 页面结构\n说明如何展示定制能力：可定制项、设计文件、打样流程、生产流程、包装、交期、沟通方式。\n\n## 模块 5：RFQ 表单字段建议\n字段：字段名 / 是否必填 / 作用 / 是否用于线索评分 / 前端提示文案。\n\n## 模块 6：资料缺口清单\n按优先级列出需要人工补充的产品参数、图片、工艺图、证书、案例、FAQ。\n\n## 模块 7：执行顺序\n用 Day 3-Day 4 的节奏安排建页任务。\n\n# 输出规范\n- 不建议直接上架 50 个 SKU，除非输入明确说明已有完整产品数据库。\n- 不使用 Add to Cart / Buy Now 作为核心转化。\n- 所有页面必须有 B2B CTA。",
+  "downstreamStages": ["s9_page_repair"],
+  "relatedPrompts": ["d4a-product-line-record", "d4b-page-priority-scoring", "d4c-page-data-pack"]
+}

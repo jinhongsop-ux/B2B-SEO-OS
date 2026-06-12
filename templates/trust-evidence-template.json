@@ -1,0 +1,121 @@
+{
+  "$schema": "trust-evidence-v1",
+  "description": "B2B 供应商可信证据库，对应 D2-C 产出",
+  "factoryImages": [
+    {
+      "id": "",
+      "description": "",
+      "url": "",
+      "type": "",
+      "typeOptions": ["aerial", "workshop", "production_line", "warehouse", "office", "entrance"],
+      "verified": false,
+      "usableOnPages": ["about", "capability", "homepage"]
+    }
+  ],
+  "equipmentImages": [
+    {
+      "id": "",
+      "description": "",
+      "url": "",
+      "equipmentType": "",
+      "brand": "",
+      "quantity": null,
+      "verified": false
+    }
+  ],
+  "qcImages": [
+    {
+      "id": "",
+      "description": "",
+      "url": "",
+      "process": "",
+      "verified": false
+    }
+  ],
+  "certificates": [
+    {
+      "id": "",
+      "name": "",
+      "issuingBody": "",
+      "imageUrl": "",
+      "pdfUrl": "",
+      "validUntil": "",
+      "scope": "",
+      "verified": false,
+      "usableOnPages": ["quality", "about", "product_pages"]
+    }
+  ],
+  "testReports": [
+    {
+      "id": "",
+      "name": "",
+      "testingBody": "",
+      "date": "",
+      "productsCovered": [],
+      "pdfUrl": "",
+      "verified": false
+    }
+  ],
+  "caseStudies": [
+    {
+      "id": "",
+      "clientIndustry": "",
+      "clientCountry": "",
+      "productOrService": "",
+      "challenge": "",
+      "solution": "",
+      "result": "",
+      "hasPermission": false,
+      "anonymized": false,
+      "images": [],
+      "verified": false
+    }
+  ],
+  "teamInfo": {
+    "founderInfo": "",
+    "keyPersonnel": [
+      {
+        "name": "",
+        "title": "",
+        "expertise": "",
+        "photoUrl": ""
+      }
+    ],
+    "teamSize": null,
+    "engineeringTeam": null
+  },
+  "processAssets": [
+    {
+      "id": "",
+      "processName": "",
+      "description": "",
+      "images": [],
+      "flowchartUrl": "",
+      "verified": false
+    }
+  ],
+  "publicClaims": [
+    {
+      "claim": "",
+      "evidenceStatus": "",
+      "evidenceStatusOptions": ["verified", "needs_evidence", "cannot_claim", "exaggerated"],
+      "relatedEvidenceIds": [],
+      "safeAlternative": ""
+    }
+  ],
+  "needsEvidence": [
+    {
+      "claim": "",
+      "requiredEvidence": "",
+      "priority": "",
+      "priorityOptions": ["blocking", "important", "nice_to_have"]
+    }
+  ],
+  "doNotClaim": [
+    {
+      "claim": "",
+      "reason": "",
+      "safeExpression": ""
+    }
+  ]
+}

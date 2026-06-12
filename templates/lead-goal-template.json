@@ -1,0 +1,72 @@
+{
+  "$schema": "lead-goal-v1",
+  "description": "B2B 询盘转化目标定义，对应 D0 产出",
+  "primaryGoal": "",
+  "primaryGoalOptions": [
+    "request_a_quote",
+    "contact_us",
+    "whatsapp",
+    "email_click",
+    "catalog_download",
+    "sample_request",
+    "send_design_file"
+  ],
+  "secondaryGoals": [],
+  "conversionPaths": [
+    {
+      "pageType": "",
+      "pageTypeOptions": [
+        "home",
+        "product_category",
+        "product_detail",
+        "solution",
+        "application",
+        "capability",
+        "about",
+        "contact",
+        "rfq",
+        "blog"
+      ],
+      "primaryCTA": "",
+      "secondaryCTA": "",
+      "formType": "",
+      "formTypeOptions": [
+        "rfq_multi_field",
+        "contact_simple",
+        "sample_request",
+        "catalog_download",
+        "whatsapp_link",
+        "email_link"
+      ],
+      "fields": []
+    }
+  ],
+  "rfqFormFields": {
+    "required": [
+      "name",
+      "company",
+      "email",
+      "country",
+      "product_interest",
+      "quantity",
+      "message"
+    ],
+    "recommended": [
+      "application",
+      "custom_requirements",
+      "file_upload",
+      "timeline",
+      "phone",
+      "whatsapp"
+    ]
+  },
+  "trackingEvents": [
+    "form_submit",
+    "rfq_submit",
+    "contact_click",
+    "whatsapp_click",
+    "email_click",
+    "catalog_download",
+    "sample_request"
+  ]
+}

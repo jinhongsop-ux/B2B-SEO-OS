@@ -1,0 +1,150 @@
+{
+  "promptId": "d0b-site-architecture",
+  "name": "B2B 网站信息架构",
+  "nameEn": "B2B Site Information Architecture",
+  "category": "s0_project_setup",
+  "version": "1.0",
+  "requiresHumanReview": true,
+  "canCreateTasks": false,
+  "canWriteWordPress": false,
+  "targetAgent": "external",
+  "workflowStepId": "project_setup",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "d0aOutput": {
+        "type": "string",
+        "description": "D0-A 商业定位诊断输出（完整粘贴）"
+      },
+      "industryName": {
+        "type": "string",
+        "description": "行业/品类名称"
+      },
+      "brandOrCompanyName": {
+        "type": "string",
+        "description": "品牌/公司名（如未确定，填未确定）"
+      },
+      "targetMarket": {
+        "type": "string",
+        "description": "目标市场"
+      },
+      "useWooCommerce": {
+        "type": "string",
+        "enum": ["是", "否", "待定"],
+        "description": "是否使用 WooCommerce"
+      },
+      "hasMultipleProductLines": {
+        "type": "string",
+        "enum": ["是", "否", "待定"],
+        "description": "是否有多产品线"
+      },
+      "primaryConversionGoal": {
+        "type": "string",
+        "description": "主转化目标"
+      }
+    },
+    "required": [
+      "d0aOutput",
+      "industryName",
+      "targetMarket",
+      "primaryConversionGoal"
+    ]
+  },
+  "outputSchema": {
+    "schemaName": "d0b_site_architecture_v1",
+    "type": "object",
+    "properties": {
+      "primaryNavigation": {
+        "type": "array",
+        "description": "一级导航建议（5-7个）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "navItem": { "type": "string" },
+            "reason": { "type": "string" },
+            "purchaseStage": { "type": "string" }
+          }
+        }
+      },
+      "pageArchitectureTree": {
+        "type": "object",
+        "description": "页面架构树（URL树状结构，不超过3层）"
+      },
+      "p0Pages": {
+        "type": "array",
+        "description": "P0 页面清单（上线前必须完成）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "pageName": { "type": "string" },
+            "url": { "type": "string" },
+            "pageGoal": { "type": "string" },
+            "primaryCTA": { "type": "string" },
+            "requiredEvidence": { "type": "string" }
+          }
+        }
+      },
+      "p1Pages": {
+        "type": "array",
+        "description": "P1 页面清单（增强信任和SEO）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "pageName": { "type": "string" },
+            "url": { "type": "string" },
+            "pageGoal": { "type": "string" },
+            "primaryCTA": { "type": "string" },
+            "requiredEvidence": { "type": "string" }
+          }
+        }
+      },
+      "p2Pages": {
+        "type": "array",
+        "description": "P2 页面清单（后续扩展内容页）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "pageName": { "type": "string" },
+            "url": { "type": "string" },
+            "pageGoal": { "type": "string" },
+            "primaryCTA": { "type": "string" },
+            "requiredEvidence": { "type": "string" }
+          }
+        }
+      },
+      "conversionPathMap": {
+        "type": "object",
+        "description": "转化路径地图（产品词/供应商词/应用词/采购问题词）"
+      },
+      "architectureWarnings": {
+        "type": "array",
+        "description": "建站注意事项（B2B页面架构雷区）",
+        "items": { "type": "string" }
+      }
+    },
+    "required": [
+      "primaryNavigation",
+      "pageArchitectureTree",
+      "p0Pages",
+      "p1Pages",
+      "p2Pages",
+      "conversionPathMap",
+      "architectureWarnings"
+    ]
+  },
+  "forbiddenActions": [
+    "不使用 DTC 购物车逻辑，除非输入明确要求 WooCommerce 直接成交",
+    "页面名称必须可直接交给建站人员执行",
+    "URL 用英文小写短横线",
+    "全部中文输出"
+  ],
+  "humanChecklist": [
+    "确认导航结构是否覆盖核心采购路径",
+    "验证 P0 页面是否足以支撑询盘",
+    "检查 URL 层级是否合理（不超过3层）",
+    "确认转化路径是否覆盖主要流量来源"
+  ],
+  "markdownTemplate": "# d0b-site-architecture\n\n# 角色定义\n你是一名 B2B 独立站信息架构师，熟悉 WordPress、Elementor、WooCommerce 询盘模式、SEO URL 架构和 B2B 采购转化路径。\n你的任务是根据商业定位，生成一个可执行的 B2B 网站从 0 到 1 页面架构。\n\n# 输入信息\nD0-A 商业定位诊断输出：【完整粘贴】\n行业/品类名称：【填写】\n品牌/公司名：【如未确定，填未确定】\n目标市场：【填写】\n是否使用 WooCommerce：【是/否/待定】\n是否有多产品线：【是/否/待定】\n主转化目标：【填写】\n\n# 输出结构\n按以下 7 个模块输出。\n\n## 一、一级导航建议\n输出 5-7 个主导航项：Home / Products / Solutions / Custom Manufacturing / Quality / Resources / About / Contact 等。\n每项说明存在理由和对应采购阶段。\n\n## 二、页面架构树\n用树状结构输出 URL，不超过 3 层。\n必须包含：产品线页、核心产品页、解决方案页、能力页、信任页、询盘页。\n\n## 三、P0 页面清单\n列出上线前必须完成的页面。字段：页面名 / URL / 页面目标 / 主 CTA / 需要的证据素材。\n\n## 四、P1 页面清单\n列出增强信任和 SEO 的页面。字段同上。\n\n## 五、P2 页面清单\n列出后续扩展内容页。字段同上。\n\n## 六、转化路径地图\n分别说明：产品词流量、供应商词流量、应用词流量、采购问题词流量进入网站后的路径。\n格式：入口页面 → 中间信任页 → 目标 CTA。\n\n## 七、建站注意事项\n列出 10 条 B2B 页面架构雷区，包括：页面过散、产品页无参数、没有 RFQ、没有信任证据、过度承诺等。\n\n# 输出规范\n- 全部中文，URL 用英文小写短横线。\n- 不使用 DTC 购物车逻辑，除非输入明确要求 WooCommerce 直接成交。\n- 页面名称必须可直接交给建站人员执行。",
+  "downstreamStages": ["s1_site_read"],
+  "relatedPrompts": ["d0a-business-positioning"]
+}

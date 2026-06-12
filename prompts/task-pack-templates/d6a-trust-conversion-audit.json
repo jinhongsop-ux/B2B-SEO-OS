@@ -1,0 +1,157 @@
+{
+  "promptId": "d6a-trust-conversion-audit",
+  "name": "B2B 信任与转化审计",
+  "nameEn": "B2B Trust and Conversion Audit",
+  "category": "s9_page_repair",
+  "version": "1.0",
+  "requiresHumanReview": true,
+  "canCreateTasks": false,
+  "canWriteWordPress": false,
+  "targetAgent": "external",
+  "workflowStepId": "page_repair",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "websiteUrl": {
+        "type": "string",
+        "description": "网站 URL"
+      },
+      "brandPositioning": {
+        "type": "string",
+        "description": "品牌/公司定位（粘贴 D2-B 一句话定位）"
+      },
+      "supplyChainIdentity": {
+        "type": "string",
+        "enum": ["工厂", "贸易商", "OEM供应商", "批发商", "待定"],
+        "description": "供应链身份"
+      },
+      "targetMarket": {
+        "type": "string",
+        "description": "目标市场"
+      },
+      "primaryConversionGoal": {
+        "type": "string",
+        "enum": ["RFQ", "Contact", "WhatsApp", "Catalog", "Sample"],
+        "description": "主转化目标"
+      },
+      "realCapabilityBoundaries": {
+        "type": "string",
+        "description": "真实能力边界：工厂/证书/案例/产能/交期/可公开资料"
+      },
+      "launchedCorePages": {
+        "type": "string",
+        "description": "已上线核心页面清单（粘贴 D0/D3/D4/D5 页面）"
+      }
+    },
+    "required": [
+      "websiteUrl",
+      "brandPositioning",
+      "supplyChainIdentity",
+      "targetMarket",
+      "primaryConversionGoal",
+      "realCapabilityBoundaries",
+      "launchedCorePages"
+    ]
+  },
+  "outputSchema": {
+    "schemaName": "d6a_trust_conversion_audit_v1",
+    "type": "object",
+    "properties": {
+      "overallAssessment": {
+        "type": "string",
+        "description": "总评（150字内）"
+      },
+      "prioritySummaryTable": {
+        "type": "array",
+        "description": "综合优先级总表",
+        "items": {
+          "type": "object",
+          "properties": {
+            "priority": { "type": "string", "enum": ["immediate", "important", "optimize"] },
+            "problemLocation": { "type": "string" },
+            "problemDescription": { "type": "string" },
+            "whyItAffectsTrust": { "type": "string" },
+            "fixSuggestion": { "type": "string" },
+            "estimatedTime": { "type": "string" }
+          }
+        }
+      },
+      "pageByPageDiagnosis": {
+        "type": "array",
+        "description": "逐页面诊断",
+        "items": {
+          "type": "object",
+          "properties": {
+            "pageUrl": { "type": "string" },
+            "pageRole": { "type": "string" },
+            "currentProblems": { "type": "string" },
+            "suggestedChanges": { "type": "string" },
+            "ctaToAdd": { "type": "string" },
+            "internalLinksToAdd": { "type": "string" }
+          }
+        }
+      },
+      "riskyStatements": {
+        "type": "array",
+        "description": "虚假与高风险声明排查",
+        "items": {
+          "type": "object",
+          "properties": {
+            "before": { "type": "string" },
+            "after": { "type": "string" },
+            "riskDescription": { "type": "string" }
+          }
+        }
+      },
+      "missingTrustPages": {
+        "type": "array",
+        "description": "缺失信任页面清单",
+        "items": {
+          "type": "object",
+          "properties": {
+            "pageName": { "type": "string" },
+            "necessity": { "type": "string" },
+            "priority": { "type": "string" }
+          }
+        }
+      },
+      "inquiryPathDiagnosis": {
+        "type": "object",
+        "description": "询盘路径诊断",
+        "properties": {
+          "currentPaths": { "type": "object" },
+          "recommendedPath": { "type": "string" }
+        }
+      },
+      "sameDayFixes": {
+        "type": "array",
+        "description": "当天修复待办（10-20条）",
+        "items": { "type": "string" }
+      }
+    },
+    "required": [
+      "overallAssessment",
+      "prioritySummaryTable",
+      "pageByPageDiagnosis",
+      "riskyStatements",
+      "missingTrustPages",
+      "inquiryPathDiagnosis",
+      "sameDayFixes"
+    ]
+  },
+  "forbiddenActions": [
+    "不要泛泛而谈，要指出具体页面和具体问题",
+    "不要建议虚构证据",
+    "所有修复建议都要适合 B2B 采购方"
+  ],
+  "humanChecklist": [
+    "确认总评是否准确识别最大问题",
+    "验证优先级是否合理（立即/重要/优化）",
+    "检查风险声明是否基于真实内容",
+    "核实缺失信任页面清单是否完整",
+    "确认当天修复待办是否可执行"
+  ],
+  "markdownTemplate": "# d6a-trust-conversion-audit\n\n# 角色定义\n你是一名 B2B 独立站信任与转化审计专家，熟悉海外采购信任判断、供应商站页面结构、询盘转化、E-E-A-T、虚假声明风险和低质询盘过滤。\n你的任务是扫描并诊断一个 B2B 网站是否具备让采购方愿意询盘的基础信任条件。\n\n# 输入信息\n网站 URL：【填写】\n品牌/公司定位：【粘贴 D2-B 一句话定位】\n供应链身份：【工厂/贸易商/OEM供应商/批发商/待定】\n目标市场：【填写】\n主转化目标：【RFQ/Contact/WhatsApp/Catalog/Sample】\n真实能力边界：【工厂/证书/案例/产能/交期/可公开资料】\n已上线核心页面清单：【粘贴 D0/D3/D4/D5 页面】\n\n# 诊断维度\n请按以下 10 个维度审计：\n1. 公司身份可信度\n2. 产品线与参数完整度\n3. 定制/OEM 能力表达\n4. 质量控制与证据\n5. 证书/合规声明风险\n6. 案例与应用场景可信度\n7. Contact/RFQ/WhatsApp/Email 转化路径\n8. 页脚、政策、隐私、条款完整度\n9. 文案廉价感与虚假承诺\n10. SEO 页面与采购意图匹配度\n\n# 输出结构\n\n## 一、总评\n用 150 字内说明当前网站最大问题：缺页面、缺证据、缺 CTA、过度声明、还是页面逻辑不清。\n\n## 二、综合优先级总表\n字段：优先级(🔴立即/🟠重要/🟡优化) / 问题位置 / 问题描述 / 为什么影响采购信任 / 修复建议 / 预计耗时。\n\n## 三、逐页面诊断\n按页面输出：页面 URL / 页面角色 / 当前问题 / 建议修改 / 应补充 CTA / 应补充内链。\n\n## 四、虚假与高风险声明排查\n列出所有可能导致信任风险的表达，并给出 Before/After 替换。\n\n## 五、缺失信任页面清单\n列出必须补的页面：About、Factory/Capability、QC、Certifications、Custom Process、FAQ、Contact/RFQ、Sample Policy、Shipping/Export、Terms/Privacy。\n每个页面说明必要性和优先级。\n\n## 六、询盘路径诊断\n检查 RFQ、Contact、WhatsApp、Email、Catalog、Sample 的路径是否清晰。\n输出推荐转化路径：入口页 → 信任页 → RFQ。\n\n## 七、当天修复待办\n输出 10-20 条可以当天执行的修复清单。\n\n# 输出规范\n- 不要泛泛而谈，要指出具体页面和具体问题。\n- 不要建议虚构证据。\n- 所有修复建议都要适合 B2B 采购方。",
+  "downstreamStages": ["s9_page_repair"],
+  "relatedPrompts": ["d6b-trust-page-generator"]
+}

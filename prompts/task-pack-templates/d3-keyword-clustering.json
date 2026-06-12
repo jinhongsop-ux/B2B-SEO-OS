@@ -1,0 +1,195 @@
+{
+  "promptId": "d3-keyword-clustering",
+  "name": "B2B 关键词聚类与页面战略地图",
+  "nameEn": "B2B Keyword Clustering and Page Strategy Map",
+  "category": "s4_seed_keywords",
+  "version": "1.0",
+  "requiresHumanReview": true,
+  "canCreateTasks": false,
+  "canWriteWordPress": false,
+  "targetAgent": "external",
+  "workflowStepId": "seed_keywords",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "siteDomain": {
+        "type": "string",
+        "description": "站点域名"
+      },
+      "industryName": {
+        "type": "string",
+        "description": "行业/品类名称"
+      },
+      "targetMarket": {
+        "type": "string",
+        "description": "目标市场"
+      },
+      "supplyChainIdentity": {
+        "type": "string",
+        "description": "供应链身份"
+      },
+      "primaryConversionGoal": {
+        "type": "string",
+        "enum": ["Request a Quote", "Contact", "Catalog Download", "Sample Request"],
+        "description": "主转化目标"
+      },
+      "d0ArchitectureTree": {
+        "type": "string",
+        "description": "D0 网站架构树（粘贴）"
+      },
+      "d1Summary": {
+        "type": "string",
+        "description": "D1 行业与采购认知摘要（粘贴）"
+      },
+      "d2Summary": {
+        "type": "string",
+        "description": "D2 公司定位与能力摘要（粘贴）"
+      },
+      "keywordSpreadsheet": {
+        "type": "string",
+        "description": "上传关键词词库 Excel，字段至少包含 keyword / volume / kd / intent / source_sheet"
+      }
+    },
+    "required": [
+      "siteDomain",
+      "industryName",
+      "targetMarket",
+      "supplyChainIdentity",
+      "primaryConversionGoal",
+      "d0ArchitectureTree",
+      "d1Summary",
+      "d2Summary",
+      "keywordSpreadsheet"
+    ]
+  },
+  "outputSchema": {
+    "schemaName": "d3_keyword_clustering_v1",
+    "type": "object",
+    "properties": {
+      "sheet1_clusteringMap": {
+        "type": "array",
+        "description": "Sheet1 聚类总图",
+        "items": {
+          "type": "object",
+          "properties": {
+            "clusterId": { "type": "string" },
+            "coreKeyword": { "type": "string" },
+            "secondaryKeywords": { "type": "array", "items": { "type": "string" } },
+            "searchIntent": { "type": "string" },
+            "pageType": { "type": "string" },
+            "targetUrl": { "type": "string" },
+            "priority": { "type": "string" },
+            "volume": { "type": "number" },
+            "kd": { "type": "number" },
+            "funnelStage": { "type": "string" },
+            "cta": { "type": "string" },
+            "contentDirective": { "type": "string" },
+            "internalLinkTarget": { "type": "string" },
+            "cannibalRiskNote": { "type": "string" }
+          }
+        }
+      },
+      "sheet2_urlMapping": {
+        "type": "array",
+        "description": "Sheet2 URL映射表",
+        "items": {
+          "type": "object",
+          "properties": {
+            "url": { "type": "string" },
+            "pageName": { "type": "string" },
+            "pageType": { "type": "string" },
+            "primaryKeyword": { "type": "string" },
+            "supportingKeywords": { "type": "array", "items": { "type": "string" } },
+            "pageGoal": { "type": "string" },
+            "primaryCTA": { "type": "string" },
+            "requiredEvidence": { "type": "string" },
+            "relatedPages": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      },
+      "sheet3_cannibalizationRisk": {
+        "type": "array",
+        "description": "Sheet3 竞争与蚕食风险",
+        "items": {
+          "type": "object",
+          "properties": {
+            "riskType": { "type": "string" },
+            "keywordsInvolved": { "type": "array", "items": { "type": "string" } },
+            "urlsInvolved": { "type": "array", "items": { "type": "string" } },
+            "riskDescription": { "type": "string" },
+            "handlingSuggestion": { "type": "string" },
+            "priority": { "type": "string" }
+          }
+        }
+      },
+      "sheet4_pageArchitectureTree": {
+        "type": "object",
+        "description": "Sheet4 B2B页面架构树"
+      },
+      "sheet5_contentMatrix": {
+        "type": "array",
+        "description": "Sheet5 内容矩阵（Resource/Blog/Guide/FAQ/Case Study）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "blogId": { "type": "string" },
+            "titleDirection": { "type": "string" },
+            "primaryKeyword": { "type": "string" },
+            "url": { "type": "string" },
+            "intent": { "type": "string" },
+            "pillarTarget": { "type": "string" },
+            "cta": { "type": "string" },
+            "internalLinks": { "type": "array", "items": { "type": "string" } },
+            "priority": { "type": "string" }
+          }
+        }
+      },
+      "sheet6_rfqConversionMapping": {
+        "type": "array",
+        "description": "Sheet6 RFQ与转化映射",
+        "items": {
+          "type": "object",
+          "properties": {
+            "entryPage": { "type": "string" },
+            "userIntent": { "type": "string" },
+            "recommendedCTA": { "type": "string" },
+            "formFieldSuggestion": { "type": "array", "items": { "type": "string" } },
+            "followUpMethod": { "type": "string" },
+            "trackingEventNeeded": { "type": "string" }
+          }
+        }
+      },
+      "humanChecklist": {
+        "type": "array",
+        "description": "人工核对清单（10条）",
+        "items": { "type": "string" }
+      }
+    },
+    "required": [
+      "sheet1_clusteringMap",
+      "sheet2_urlMapping",
+      "sheet3_cannibalizationRisk",
+      "sheet4_pageArchitectureTree",
+      "sheet5_contentMatrix",
+      "sheet6_rfqConversionMapping",
+      "humanChecklist"
+    ]
+  },
+  "forbiddenActions": [
+    "URL 用英文小写短横线",
+    "页面层级不超过 3 层",
+    "CTA 必须是 B2B 转化动作，不使用 Buy Now",
+    "不要让产品页和博客抢同一个核心关键词",
+    "supplier/manufacturer/factory 类词优先映射到产品线页、公司能力页或供应商专题页，不要随意映射到博客"
+  ],
+  "humanChecklist": [
+    "确认聚类是否覆盖所有核心产品词和供应商词",
+    "验证 URL 映射是否与 D0 架构一致",
+    "检查蚕食风险是否已识别并有处理方案",
+    "确认内容矩阵是否覆盖所有资源类页面",
+    "核实 RFQ 转化映射是否覆盖主要入口"
+  ],
+  "markdownTemplate": "# d3-keyword-clustering\n\n# 角色定义\n你是一名 B2B SEO 架构师，熟悉跨境供应商独立站、URL 架构、关键词聚类、搜索意图分类、内链设计和关键词蚕食控制。\n你的任务是把上传的关键词词库清洗、聚类，并映射成可执行的网站页面战略地图。\n\n# 输入信息\n站点域名：【填写】\n行业/品类名称：【填写】\n目标市场：【填写】\n供应链身份：【填写】\n主转化目标：【Request a Quote / Contact / Catalog Download / Sample Request】\nD0 网站架构树：【粘贴】\nD1 行业与采购认知摘要：【粘贴】\nD2 公司定位与能力摘要：【粘贴】\n上传关键词词库 Excel：字段至少包含 keyword / volume / kd / intent / source_sheet。\n\n# 聚类原则\n1. 一个核心搜索意图只对应一个主 URL。\n2. B2B 页面类型优先级：Product Category、Product Detail、Custom/OEM、Solution、Application、Capability、Case Study、Resource、RFQ。\n3. supplier/manufacturer/factory 类词优先映射到产品线页、公司能力页或供应商专题页，不要随意映射到博客。\n4. How-to、comparison、MOQ、lead time、supplier selection 类词优先映射到 Resource 或 FAQ，但必须内链到商业页。\n5. 不要让产品页和博客抢同一个核心关键词。\n\n# 输出文件要求\n请输出一个 Excel 战略地图，包含 6 个 Sheet。\n\n## Sheet1_聚类总图\n字段：Cluster ID / 核心关键词 / Secondary Keywords / Search Intent / 页面类型 / 目标 URL / Priority / Volume / KD / Funnel Stage / CTA / 内容指令 / 内链目标 / 蚕食风险备注。\n\n## Sheet2_URL映射表\n字段：URL / 页面名称 / 页面类型 / Primary Keyword / Supporting Keywords / 页面目标 / 主 CTA / 必需证据素材 / 关联页面。\n\n## Sheet3_竞争与蚕食风险\n字段：风险类型 / 涉及关键词 / 涉及 URL / 风险说明 / 处理建议 / 优先级。\n\n## Sheet4_B2B页面架构树\n用层级结构列出 Home、Products、Solutions、Custom、Quality、Resources、About、Contact 下的 URL。\n\n## Sheet5_内容矩阵\n只保留 Resource/Blog/Guide/FAQ/Case Study 类型页面。\n字段：BlogID / Title Direction / Primary Keyword / URL / Intent / Pillar Target / CTA / Internal Links / Priority。\n\n## Sheet6_RFQ与转化映射\n字段：入口页面 / 用户意图 / 推荐 CTA / 表单字段建议 / 后续跟进方式 / 需要追踪事件。\n\n# 输出规范\n- URL 用英文小写短横线。\n- 页面层级不超过 3 层。\n- CTA 必须是 B2B 转化动作，不使用 Buy Now。\n- 输出后附 10 条人工核对清单。",
+  "downstreamStages": ["s4_seed_keywords"],
+  "relatedPrompts": ["d3-0-seed-keyword-plan", "d3-scoring-criteria"]
+}

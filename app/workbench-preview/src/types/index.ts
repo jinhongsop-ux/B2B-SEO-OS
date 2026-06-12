@@ -12,6 +12,42 @@ export interface Project {
   primaryConversionGoal: string;
   currentStage: string;
   safetyMode: 'read_only';
+  // D0 扩展字段
+  leadGoal?: LeadGoal;
+  techStack?: TechStack;
+  searchLanguages?: string[];
+  productType?: string;
+  specialConcerns?: string;
+  knownCompetitors?: string[];
+  knownImportantPages?: string[];
+  wordpressAccess?: 'has_admin' | 'has_editor' | 'frontend_only' | 'none';
+  seoPlugin?: string;
+  hasWooCommerce?: boolean;
+  estimatedPageCount?: number;
+}
+
+export interface LeadGoal {
+  primaryGoal: string;
+  secondaryGoals: string[];
+  rfqFormFields: string[];
+  conversionPaths: Array<{
+    pageType: string;
+    primaryCTA: string;
+    formType: string;
+  }>;
+}
+
+export interface TechStack {
+  cms: 'wordpress';
+  pageBuilder: 'elementor' | 'gutenberg' | 'other' | '';
+  ecommerceMode: 'woocommerce_catalog' | 'woocommerce_quote' | 'none' | '';
+  acfEnabled: boolean;
+  formPlugin: string;
+  trackingStack: {
+    gtm: boolean;
+    ga4: boolean;
+    gsc: boolean;
+  };
 }
 
 export interface ProjectProfile extends Project {
@@ -528,4 +564,304 @@ export interface SuperCluster {
   internalLinkTargets: string[];
   recommendedCta: string;
   reason: string;
+}
+
+// ===== B2B Knowledge Base (D0-D8 integration) =====
+export interface KnowledgeBase {
+  // S0 - Project Setup
+  businessModel: BusinessModel | null;
+  // S1 - Site Read
+  siteReadSnapshot: SiteReadSnapshot | null;
+  // S2 - Site Audit
+  siteAuditReport: SiteAuditReport | null;
+  // S3 - B2B Context & Evidence
+  b2bContextEvidence: B2BContextEvidence | null;
+  // D1 - Industry Knowledge
+  knowledgeB2B: KnowledgeB2B | null;
+  // D2 - Company & Brand
+  companyProfile: CompanyProfile | null;
+  capability: Capability | null;
+  trustEvidence: TrustEvidence | null;
+  brandVoiceB2B: BrandVoiceB2B | null;
+  // S4 - Seed Keywords
+  seedKeywordPlan: SeedKeywordPlan | null;
+  // S7 - Keyword Database
+  keywordDatabase: KeywordRecord[];
+  // S8 - Keyword Assignments
+  keywordAssignments: KeywordAssignment[];
+  // S9 - Page Fixes
+  pageFixPlan: PageFixPlan | null;
+  // S10 - Unused Keyword Clusters
+  unusedKeywordClusters: ClusterRecord[];
+  // S11 - Content Opportunities
+  contentOpportunities: ContentOpportunity[];
+  // S12 - Content Handoff
+  contentHandoffPackages: ContentHandoff[];
+  // S13 - QA Reports
+  qaReports: QAReport[];
+  // S14 - Monitoring
+  monitoringReports: MonitoringReport[];
+}
+
+export interface BusinessModel {
+  siteType: string;
+  targetMarket: string[];
+  targetBuyerRoles: Array<{
+    role: string;
+    companyType: string;
+    procurementGoal: string;
+    coreConcerns: string;
+  }>;
+  businessModel: string;
+  primaryConversionGoal: string;
+  secondaryGoals: string[];
+  supplyChainIdentity: string;
+  valuePropositions: string[];
+  riskBoundaries: string[];
+  launchPriority: {
+    p0: string[];
+    p1: string[];
+    p2: string[];
+  };
+}
+
+export interface SiteAuditReport {
+  reportId: string;
+  summary: string;
+  moduleReports: Array<{
+    module: string;
+    status: string;
+    findings: string[];
+  }>;
+  findings: Array<{
+    id: string;
+    category: string;
+    priority: 'blocking' | 'normal';
+    problem: string;
+    affectedUrls: string[];
+    evidence: Array<{ url: string; note: string }>;
+    impact: string;
+    recommendedAction: string;
+    requiresDeveloper: boolean;
+  }>;
+  createdAt: string;
+}
+
+export interface B2BContextEvidence {
+  contextEntities: Array<{
+    entityId: string;
+    name: string;
+    type: string;
+    attributes: Record<string, unknown>;
+    confidence: 'explicit' | 'inferred';
+  }>;
+  evidenceItems: Array<{
+    evidenceId: string;
+    type: string;
+    url: string;
+    note: string;
+  }>;
+  entityEvidenceLinks: Array<{
+    entityId: string;
+    evidenceId: string;
+    relation: 'supported_by' | 'mentioned_on' | 'affected_by_finding' | 'needs_more_evidence';
+  }>;
+}
+
+export interface KnowledgeB2B {
+  terminology: Array<{ term: string; definition: string; category: string }>;
+  applications: Array<{ industry: string; useCase: string; endProduct: string }>;
+  materials: Array<{ name: string; properties: string; commonUses: string[] }>;
+  processes: Array<{ name: string; description: string; advantages: string[] }>;
+  buyerFAQ: Array<{ question: string; answer: string; category: string }>;
+  objections: Array<{ concern: string; mitigation: string; evidenceNeeded: string }>;
+  competitorContext: {
+    competitors: Array<{
+      domain: string;
+      positioning: string;
+      strengths: string[];
+      weaknesses: string[];
+    }>;
+  };
+  procurementJourney: {
+    roles: Array<{
+      role: string;
+      responsibility: string;
+      keyConcerns: string[];
+    }>;
+    selectionCriteria: string[];
+  };
+}
+
+export interface CompanyProfile {
+  siteName: string;
+  positioning: {
+    oneLineDescription: string;
+    industry: string;
+    differentiator: string;
+  };
+  targetAudience: {
+    primaryRoles: string[];
+    geographicMarkets: string[];
+  };
+  supplierIdentity: {
+    type: string;
+    yearsEstablished: number | null;
+    employeeCount: number | null;
+  };
+  coreValuePropositions: Array<{
+    proposition: string;
+    evidenceStatus: string;
+  }>;
+  mustSay: string[];
+  mustNotSay: string[];
+}
+
+export interface Capability {
+  productCapabilities: Array<{
+    productLine: string;
+    materials: string[];
+    moq: string;
+    leadTime: string;
+  }>;
+  customizationCapabilities: Array<{
+    type: string;
+    description: string;
+    minimumOrder: string;
+  }>;
+  qualityControl: {
+    system: string;
+    inspectionPoints: string[];
+    certifications: Array<{ name: string; issuingBody: string; verified: boolean }>;
+  };
+  samplePolicy: {
+    available: boolean;
+    freeSamples: boolean;
+    sampleLeadTime: string;
+  };
+}
+
+export interface TrustEvidence {
+  factoryImages: Array<{ id: string; description: string; verified: boolean }>;
+  certificates: Array<{ id: string; name: string; verified: boolean }>;
+  caseStudies: Array<{ id: string; clientIndustry: string; verified: boolean }>;
+  publicClaims: Array<{ claim: string; evidenceStatus: string; safeAlternative: string }>;
+  needsEvidence: Array<{ claim: string; requiredEvidence: string; priority: string }>;
+  doNotClaim: Array<{ claim: string; reason: string }>;
+}
+
+export interface BrandVoiceB2B {
+  toneOfVoice: {
+    overall: string;
+    formality: string;
+    technicalDepth: string;
+  };
+  mustSay: Array<{ message: string; applicablePages: string[] }>;
+  mustNotSay: Array<{ phrase: string; reason: string; safeAlternative: string }>;
+  pageToneRules: Array<{
+    pageType: string;
+    tone: string;
+    doInclude: string[];
+    avoid: string[];
+  }>;
+}
+
+export interface SeedKeywordPlan {
+  seedGroups: Array<{
+    seedGroupId: string;
+    name: string;
+    tier: 'T1' | 'T2' | 'T3';
+    seeds: Array<{
+      keyword: string;
+      chineseExplanation: string;
+      productLine: string;
+      priority: string;
+      toolInstruction: string;
+    }>;
+    toolInstructions: string[];
+  }>;
+  researchInstructions: string[];
+  competitorResearchSeeds: string[];
+  negativeDirections: string[];
+}
+
+export interface KeywordRecord {
+  keywordId: string;
+  keyword: string;
+  sourceTools: string[];
+  volume: number | null;
+  kd: number | null;
+  competition: number | null;
+  cpc: number | null;
+  intent: string;
+  sourceSeedGroupIds: string[];
+  status: string;
+  notes: string;
+}
+
+export interface KeywordAssignment {
+  assignmentId: string;
+  keywordId: string;
+  status: 'unreviewed' | 'approved' | 'skipped' | 'deferred' | 'assigned_existing_page' | 'assigned_new_opportunity';
+  assignedUrl: string | null;
+  assignedPageType: string | null;
+  reviewerNotes: string;
+}
+
+export interface PageFixPlan {
+  pageFixes: Array<{
+    fixId: string;
+    affectedUrl: string;
+    targetKeywords: string[];
+    relatedFindings: string[];
+    recommendedChanges: Array<{
+      module: string;
+      action: string;
+      content: string;
+    }>;
+    requiresDeveloper: boolean;
+    status: 'pending' | 'in_progress' | 'completed';
+  }>;
+}
+
+export interface ClusterRecord {
+  clusterId: string;
+  keywords: string[];
+  intent: string;
+  buyerStage: string;
+  suggestedPageType: string;
+  businessEntityLinks: string[];
+}
+
+export interface QAReport {
+  reportId: string;
+  targetId: string;
+  targetType: string;
+  checks: Array<{
+    check: string;
+    passed: boolean;
+    detail: string;
+  }>;
+  blockingIssues: string[];
+  createdAt: string;
+}
+
+export interface MonitoringReport {
+  reportId: string;
+  period: string;
+  indexedPages: number;
+  queries: Array<{
+    query: string;
+    clicks: number;
+    impressions: number;
+    ctr: number;
+    avgPosition: number;
+  }>;
+  leadSignals: Array<{
+    source: string;
+    count: number;
+    quality: string;
+  }>;
+  recommendedNextActions: string[];
+  createdAt: string;
 }

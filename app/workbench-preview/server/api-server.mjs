@@ -23,6 +23,9 @@ import {
   reviewIngestionRun as reviewWorkspaceIngestionRun,
   runArtifactIngestion,
   submitArtifact,
+  buildB2bContextPrompt,
+  submitB2bContext,
+  reviewB2bContext,
 } from './agent-workflow-actions.mjs'
 import {
   SiteReadingError,
@@ -193,6 +196,90 @@ async function routeRequest(request, response) {
   if (request.method === 'GET' && pathname === '/api/task-packs') {
     const state = await workspaceStore.readState()
     sendJson(response, 200, { taskPacks: state.taskPacks })
+    return
+  }
+
+  if (request.method === 'GET' && pathname === '/api/audit-runs') {
+    const state = await workspaceStore.readState()
+    sendJson(response, 200, { auditRuns: state.auditRuns, auditFindings: state.auditFindings })
+    return
+  }
+
+  if (request.method === 'GET' && pathname === '/api/audit-runs/latest') {
+    const state = await workspaceStore.readState()
+    const auditRun = state.auditRuns[0] || null
+    if (!auditRun) {
+      sendError(response, 404, 'audit_not_found', '还没有生成审计报告。')
+      return
+    }
+    sendJson(response, 200, { auditRun, auditFindings: state.auditFindings })
+    return
+  }
+
+  if (request.method === 'GET' && pathname === '/api/b2b-context') {
+    const state = await workspaceStore.readState()
+    sendJson(response, 200, { b2bContext: state.b2bContext })
+    return
+  }
+
+  if (request.method === 'GET' && pathname === '/api/b2b-context/prompt') {
+    const state = await workspaceStore.readState()
+    try {
+      const prompt = buildB2bContextPrompt(state)
+      sendJson(response, 200, { prompt })
+    } catch (error) {
+      if (error instanceof AgentWorkflowError) {
+        sendError(response, error.statusCode, error.code, error.message)
+        return
+      }
+      throw error
+    }
+    return
+  }
+
+  if (request.method === 'POST' && pathname === '/api/b2b-context/generate') {
+    const body = await readJsonBody(request)
+    if (body.error) {
+      sendError(response, 400, 'bad_json', body.error)
+      return
+    }
+    try {
+      const { state, result } = await workspaceStore.updateState((draft) => submitB2bContext(draft, body.value))
+      sendJson(response, 201, {
+        b2bContext: result,
+        workspace: toWorkspaceView(state),
+        workflow: deriveWorkflow(state),
+      })
+    } catch (error) {
+      if (error instanceof AgentWorkflowError) {
+        sendError(response, error.statusCode, error.code, error.message)
+        return
+      }
+      throw error
+    }
+    return
+  }
+
+  if (request.method === 'POST' && pathname === '/api/b2b-context/review') {
+    const body = await readJsonBody(request)
+    if (body.error) {
+      sendError(response, 400, 'bad_json', body.error)
+      return
+    }
+    try {
+      const { state, result } = await workspaceStore.updateState((draft) => reviewB2bContext(draft, body.value))
+      sendJson(response, 200, {
+        b2bContext: result,
+        workspace: toWorkspaceView(state),
+        workflow: deriveWorkflow(state),
+      })
+    } catch (error) {
+      if (error instanceof AgentWorkflowError) {
+        sendError(response, error.statusCode, error.code, error.message)
+        return
+      }
+      throw error
+    }
     return
   }
 

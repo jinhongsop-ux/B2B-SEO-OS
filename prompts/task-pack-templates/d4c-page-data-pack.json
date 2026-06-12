@@ -1,0 +1,149 @@
+{
+  "promptId": "d4c-page-data-pack",
+  "name": "B2B 页面数据包生成",
+  "nameEn": "B2B Page Data Pack Generator",
+  "category": "s9_page_repair",
+  "version": "1.0",
+  "requiresHumanReview": true,
+  "canCreateTasks": false,
+  "canWriteWordPress": false,
+  "targetAgent": "external",
+  "workflowStepId": "page_repair",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "targetPageName": {
+        "type": "string",
+        "description": "目标页面名称"
+      },
+      "targetUrl": {
+        "type": "string",
+        "description": "目标 URL"
+      },
+      "pageType": {
+        "type": "string",
+        "enum": ["Product Category", "Product Detail", "Custom OEM", "RFQ", "Sample", "Catalog"],
+        "description": "页面类型"
+      },
+      "productLineRecordRow": {
+        "type": "string",
+        "description": "产品线记录表对应行（粘贴）"
+      },
+      "d2BrandVoice": {
+        "type": "string",
+        "description": "D2 品牌调性（粘贴）"
+      },
+      "d1CategoryKnowledge": {
+        "type": "string",
+        "description": "D1 品类知识库相关内容（粘贴）"
+      },
+      "availableEvidence": {
+        "type": "string",
+        "description": "可用证据素材（粘贴）"
+      }
+    },
+    "required": [
+      "targetPageName",
+      "targetUrl",
+      "pageType",
+      "productLineRecordRow",
+      "d2BrandVoice",
+      "d1CategoryKnowledge",
+      "availableEvidence"
+    ]
+  },
+  "outputSchema": {
+    "schemaName": "d4c_page_data_pack_v1",
+    "type": "object",
+    "properties": {
+      "seoFields": {
+        "type": "object",
+        "description": "SEO 基础字段",
+        "properties": {
+          "metaTitle": { "type": "string" },
+          "metaDescription": { "type": "string" },
+          "slug": { "type": "string" },
+          "h1": { "type": "string" },
+          "breadcrumb": { "type": "string" },
+          "schemaSuggestion": { "type": "string" }
+        }
+      },
+      "pageModules": {
+        "type": "array",
+        "description": "页面模块结构（按顺序）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "moduleName": { "type": "string" },
+            "moduleTitle": { "type": "string" },
+            "bodyContent": { "type": "string" },
+            "buttonText": { "type": "string" },
+            "internalLinkSuggestion": { "type": "string" },
+            "imageSuggestion": { "type": "string" }
+          }
+        }
+      },
+      "b2bCTAs": {
+        "type": "array",
+        "description": "B2B CTA 文案（5组不同强度）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "ctaType": { "type": "string" },
+            "ctaText": { "type": "string" }
+          }
+        }
+      },
+      "faq": {
+        "type": "array",
+        "description": "FAQ（8-12个，回答60-120字）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "question": { "type": "string" },
+            "answer": { "type": "string" }
+          }
+        }
+      },
+      "acfFieldSuggestions": {
+        "type": "array",
+        "description": "ACF/字段建议",
+        "items": {
+          "type": "object",
+          "properties": {
+            "fieldName": { "type": "string" },
+            "value": { "type": "string" }
+          }
+        }
+      },
+      "prePublishChecklist": {
+        "type": "array",
+        "description": "发布前检查清单（10条）",
+        "items": { "type": "string" }
+      }
+    },
+    "required": [
+      "seoFields",
+      "pageModules",
+      "b2bCTAs",
+      "faq",
+      "acfFieldSuggestions",
+      "prePublishChecklist"
+    ]
+  },
+  "forbiddenActions": [
+    "不写虚假证书、虚假库存、虚假客户",
+    "不使用 DTC 促销话术",
+    "全部中文说明，网站正文可用英文输出"
+  ],
+  "humanChecklist": [
+    "确认 Meta Title/Description 字符长度合规",
+    "验证页面模块顺序是否符合 B2B 阅读路径",
+    "检查 FAQ 是否覆盖核心采购问题",
+    "核实 ACF 字段是否可直接录入 WordPress",
+    "确认所有 CTA 是否为 B2B 转化动作"
+  ],
+  "markdownTemplate": "# d4c-page-data-pack\n\n# 角色定义\n你是一名 B2B WordPress 页面内容架构师和 SEO 文案专家。\n你的任务是把产品线记录表转化为可直接发布到 WordPress/Elementor/ACF/WooCommerce 询盘模式的页面数据包。\n\n# 输入信息\n目标页面名称：【填写】\n目标 URL：【填写】\n页面类型：【Product Category / Product Detail / Custom OEM / RFQ / Sample / Catalog】\n产品线记录表对应行：【粘贴】\nD2 品牌调性：【粘贴】\nD1 品类知识库相关内容：【粘贴】\n可用证据素材：【粘贴】\n\n# 输出结构\n\n## 1. SEO 基础字段\nMeta Title / Meta Description / Slug / H1 / Breadcrumb / Schema 建议。\n\n## 2. 页面模块结构\n按顺序输出模块：Hero、Overview、Applications、Specifications、Customization、Quality Control、Packaging & Shipping、FAQ、Related Pages、CTA。\n每个模块包含：模块标题、正文、按钮文案、内链建议、图片建议。\n\n## 3. B2B CTA 文案\n输出 5 组不同强度 CTA：Request a Quote、Send Your Requirements、Ask for Sample、Download Catalog、Talk to Sales。\n\n## 4. FAQ\n输出 8-12 个产品页 FAQ，回答 60-120 字。\n\n## 5. ACF/字段建议\n输出适合结构化录入的字段名和值。\n\n## 6. 发布前检查清单\n列出 10 条检查项。\n\n# 输出规范\n- 全部中文说明，网站正文可用英文输出。\n- 不写虚假证书、虚假库存、虚假客户。\n- 不使用 DTC 促销话术。",
+  "downstreamStages": ["s9_page_repair"],
+  "relatedPrompts": ["d4a-product-line-record", "d4b-page-priority-scoring"]
+}

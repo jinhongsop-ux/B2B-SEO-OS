@@ -1,0 +1,66 @@
+{
+  "$schema": "company-profile-v1",
+  "description": "B2B 公司定位与供应商身份，对应 D2-A/D2-C 产出",
+  "siteName": "",
+  "legalName": "",
+  "positioning": {
+    "oneLineDescription": "",
+    "industry": "",
+    "specialization": "",
+    "differentiator": ""
+  },
+  "targetAudience": {
+    "primaryRoles": [],
+    "companyTypes": [],
+    "geographicMarkets": [],
+    "industries": []
+  },
+  "brandRole": "",
+  "brandRoleOptions": [
+    "manufacturer",
+    "oem_partner",
+    "solution_provider",
+    "supplier",
+    "distributor",
+    "consultant"
+  ],
+  "supplierIdentity": {
+    "type": "",
+    "typeOptions": ["factory", "trading_company", "brand_owner", "agent"],
+    "yearsEstablished": null,
+    "employeeCount": null,
+    "factoryArea": "",
+    "exportPercentage": null,
+    "mainExportMarkets": []
+  },
+  "serviceMarkets": [],
+  "coreValuePropositions": [
+    {
+      "proposition": "",
+      "evidenceStatus": "",
+      "evidenceStatusOptions": ["confirmed", "needs_evidence", "cannot_claim"]
+    }
+  ],
+  "mustSay": [],
+  "mustNotSay": [],
+  "brandVoice": {
+    "tone": "",
+    "toneOptions": ["professional", "technical", "warm_professional", "authoritative"],
+    "language": "en",
+    "style": "",
+    "pageToneRules": {
+      "homepage": "",
+      "productPages": "",
+      "aboutPage": "",
+      "blog": "",
+      "rfqPage": ""
+    }
+  },
+  "safetyExpressions": [
+    {
+      "unsafeClaim": "",
+      "safeAlternative": "",
+      "reason": ""
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "promptId": "d6b-trust-page-generator",
+  "name": "B2B 信任页面内容生成",
+  "nameEn": "B2B Trust Page Content Generator",
+  "category": "s9_page_repair",
+  "version": "1.0",
+  "requiresHumanReview": true,
+  "canCreateTasks": false,
+  "canWriteWordPress": false,
+  "targetAgent": "external",
+  "workflowStepId": "page_repair",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "brandOrCompanyName": {
+        "type": "string",
+        "description": "品牌/公司名"
+      },
+      "websiteUrl": {
+        "type": "string",
+        "description": "网站 URL"
+      },
+      "industryCategory": {
+        "type": "string",
+        "description": "行业/品类"
+      },
+      "targetMarket": {
+        "type": "string",
+        "description": "目标市场"
+      },
+      "supplyChainIdentity": {
+        "type": "string",
+        "description": "供应链身份"
+      },
+      "d2BrandPositioningAndVoice": {
+        "type": "string",
+        "description": "D2 公司定位与语言风格（粘贴）"
+      },
+      "d2cCapabilityEvidenceDb": {
+        "type": "string",
+        "description": "D2-C 公司证据与能力数据库（粘贴）"
+      },
+      "d1CategoryKnowledge": {
+        "type": "string",
+        "description": "D1 品类知识库（粘贴）"
+      },
+      "pagesToGenerate": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "About",
+            "Manufacturing Capability",
+            "Quality Control",
+            "Certifications",
+            "Custom Process",
+            "FAQ",
+            "Contact",
+            "RFQ",
+            "Sample Policy",
+            "Shipping",
+            "Privacy",
+            "Terms"
+          ]
+        },
+        "description": "需要生成的页面（勾选）"
+      }
+    },
+    "required": [
+      "brandOrCompanyName",
+      "websiteUrl",
+      "industryCategory",
+      "targetMarket",
+      "supplyChainIdentity",
+      "d2BrandPositioningAndVoice",
+      "d2cCapabilityEvidenceDb",
+      "d1CategoryKnowledge",
+      "pagesToGenerate"
+    ]
+  },
+  "outputSchema": {
+    "schemaName": "d6b_trust_page_generator_v1",
+    "type": "object",
+    "properties": {
+      "generatedPages": {
+        "type": "array",
+        "description": "生成的信任页面列表",
+        "items": {
+          "type": "object",
+          "properties": {
+            "pageName": { "type": "string" },
+            "seoTitle": { "type": "string" },
+            "metaDescription": { "type": "string" },
+            "suggestedUrl": { "type": "string" },
+            "h1": { "type": "string" },
+            "pageGoal": { "type": "string" },
+            "pageContentModules": { "type": "array", "items": { "type": "string" } },
+            "faqOrSupplementaryNotes": { "type": "array", "items": { "type": "string" } },
+            "ctaBlock": { "type": "string" },
+            "internalLinkSuggestions": { "type": "array", "items": { "type": "string" } },
+            "materialsToSupplement": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "required": ["generatedPages"]
+  },
+  "forbiddenActions": [
+    "所有页面必须有 B2B CTA",
+    "不得虚构证书、客户、案例、产能、工厂规模",
+    "事实缺失处标注 [需人工补充]",
+    "页面风格专业、清晰、可信，不做 DTC 情绪化表达"
+  ],
+  "humanChecklist": [
+    "确认每个生成页面是否基于真实资料",
+    "验证[需人工补充]标注是否完整",
+    "检查每个页面是否包含 B2B CTA",
+    "核实内链建议是否合理",
+    "确认页面目标是否与整体转化路径一致"
+  ],
+  "markdownTemplate": "# d6b-trust-page-generator\n\n# 角色定义\n你是一名 B2B 供应商网站信任页面文案专家，熟悉 About、Factory、Quality Control、Certification、Custom Process、FAQ、Contact/RFQ 等页面的结构。\n你的任务是根据真实资料生成缺失信任页面内容。\n\n# 输入信息\n品牌/公司名：【填写】\n网站 URL：【填写】\n行业/品类：【填写】\n目标市场：【填写】\n供应链身份：【填写】\nD2 公司定位与语言风格：【粘贴】\nD2-C 公司证据与能力数据库：【粘贴】\nD1 品类知识库：【粘贴】\n需要生成的页面：【勾选 About / Manufacturing Capability / Quality Control / Certifications / Custom Process / FAQ / Contact / RFQ / Sample Policy / Shipping / Privacy / Terms】\n\n# 通用规则\n- 所有页面必须有 B2B CTA。\n- 不得虚构证书、客户、案例、产能、工厂规模。\n- 事实缺失处标注 [需人工补充]。\n- 页面风格专业、清晰、可信，不做 DTC 情绪化表达。\n\n# 每个页面输出结构\n对每个被勾选页面，输出：\n1. SEO Title\n2. Meta Description\n3. Suggested URL\n4. H1\n5. 页面目标\n6. 页面正文模块\n7. FAQ 或补充说明\n8. CTA 区块\n9. 内链建议\n10. 需要人工补充的素材\n\n# 页面重点\nAbout：公司定位、服务对象、能力边界、沟通方式。\nManufacturing Capability：生产/供应/定制能力，不夸大。\nQuality Control：检验流程、标准、记录、出货检查。\nCertifications：已有证书展示；没有则写合规支持和待补充。\nCustom Process：需求沟通、设计文件、打样、确认、生产、质检、出货。\nFAQ：MOQ、样品、交期、付款、运输、定制、质量、售后。\nContact/RFQ：表单引导、填写说明、响应时间、安全承诺。\n\n# 输出规范\n- 中文说明，页面正文可用英文。\n- 每个页面独立输出，便于复制发布。",
+  "downstreamStages": ["s9_page_repair"],
+  "relatedPrompts": ["d6a-trust-conversion-audit"]
+}

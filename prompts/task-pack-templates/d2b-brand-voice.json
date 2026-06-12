@@ -1,0 +1,164 @@
+{
+  "promptId": "d2b-brand-voice",
+  "name": "B2B 供应商品牌调性文档",
+  "nameEn": "B2B Supplier Brand Voice Document",
+  "category": "s3_b2b_context",
+  "version": "1.0",
+  "requiresHumanReview": true,
+  "canCreateTasks": false,
+  "canWriteWordPress": false,
+  "targetAgent": "external",
+  "workflowStepId": "b2b_context",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "industryName": {
+        "type": "string",
+        "description": "行业/品类名称"
+      },
+      "targetMarket": {
+        "type": "string",
+        "description": "目标市场"
+      },
+      "selectedBrandPlan": {
+        "type": "string",
+        "description": "已选定的品牌/公司方案（完整粘贴）"
+      },
+      "d1Output": {
+        "type": "string",
+        "description": "D1 行业与采购认知表输出（完整粘贴）"
+      },
+      "d0Output": {
+        "type": "string",
+        "description": "D0 商业定位输出（可选粘贴）"
+      },
+      "realCapabilityBoundaries": {
+        "type": "string",
+        "description": "真实能力边界：工厂/贸易商/证书/案例/OEM/ODM/MOQ/交期等，按真实情况填写"
+      }
+    },
+    "required": [
+      "industryName",
+      "targetMarket",
+      "selectedBrandPlan",
+      "d1Output",
+      "realCapabilityBoundaries"
+    ]
+  },
+  "outputSchema": {
+    "schemaName": "d2b_brand_voice_v1",
+    "type": "object",
+    "properties": {
+      "brandBasics": {
+        "type": "object",
+        "description": "品牌基础信息",
+        "properties": {
+          "brandName": { "type": "string" },
+          "domain": { "type": "string" },
+          "category": { "type": "string" },
+          "targetMarket": { "type": "string" },
+          "supplyChainIdentity": { "type": "string" },
+          "documentVersion": { "type": "string" }
+        }
+      },
+      "brandPositioning": {
+        "type": "object",
+        "description": "B2B 品牌定位",
+        "properties": {
+          "oneLinePositioning": { "type": "string" },
+          "chineseMeaning": { "type": "string" },
+          "whoWeExistFor": { "type": "string" },
+          "whatProblemWeSolve": { "type": "string" },
+          "whatWeAreNot": { "type": "string" }
+        }
+      },
+      "supplierValuePropositions": {
+        "type": "array",
+        "description": "供应商价值主张（6-10条）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "proposition": { "type": "string" },
+            "meaningForBuyer": { "type": "string" },
+            "proofMaterialNeeded": { "type": "string" },
+            "applicablePages": { "type": "string" }
+          }
+        }
+      },
+      "languageStyleGuide": {
+        "type": "object",
+        "description": "语言风格指引",
+        "properties": {
+          "principles": { "type": "array" },
+          "writingCheckStandard": { "type": "string" }
+        }
+      },
+      "forbiddenExpressions": {
+        "type": "array",
+        "description": "禁止使用的表达（12-20条）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "expression": { "type": "string" },
+            "reason": { "type": "string" },
+            "alternative": { "type": "string" }
+          }
+        }
+      },
+      "pageToneRules": {
+        "type": "object",
+        "description": "页面语气规则（首页/产品线/详情/解决方案/工厂QC/FAQ/Contact/博客）"
+      },
+      "visualStyleDirection": {
+        "type": "object",
+        "description": "视觉风格方向",
+        "properties": {
+          "colorDirection": { "type": "string" },
+          "imageStyle": { "type": "string" },
+          "iconStyle": { "type": "string" },
+          "informationDensity": { "type": "string" },
+          "overallVisualFeeling": { "type": "string" }
+        }
+      },
+      "evidenceUsageRules": {
+        "type": "object",
+        "description": "证据使用规则",
+        "properties": {
+          "directlyDeclarable": { "type": "array", "items": { "type": "string" } },
+          "declarableWithEvidence": { "type": "array", "items": { "type": "string" } },
+          "forbiddenDeclarations": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "jsonFieldMapping": {
+        "type": "object",
+        "description": "文档使用说明：字段映射"
+      }
+    },
+    "required": [
+      "brandBasics",
+      "brandPositioning",
+      "supplierValuePropositions",
+      "languageStyleGuide",
+      "forbiddenExpressions",
+      "pageToneRules",
+      "visualStyleDirection",
+      "evidenceUsageRules",
+      "jsonFieldMapping"
+    ]
+  },
+  "forbiddenActions": [
+    "不使用虚构创始人故事替代公司可信度",
+    "凡需人工补充证据的地方，用 [需人工补充：说明] 标注",
+    "全部中文，英文示例保留英文"
+  ],
+  "humanChecklist": [
+    "确认品牌定位句是否准确反映公司身份",
+    "验证价值主张是否基于真实能力",
+    "检查禁用表达清单是否完整",
+    "确认页面语气规则是否适合目标市场",
+    "核实证据使用规则是否区分可声明/需证据/禁声明"
+  ],
+  "markdownTemplate": "# d2b-brand-voice\n\n# 角色定义\n你是一名资深 B2B 品牌策划师和跨境供应商网站文案总监。\n任务：产出完整的 B2B 供应商品牌调性文档，用于后续首页、产品页、解决方案页、信任页、博客和 RFQ 页。\n\n# 输入信息\n行业/品类名称：【填写】\n目标市场：【填写】\n已选定的品牌/公司方案：【完整粘贴】\nD1 行业与采购认知表输出：【完整粘贴】\nD0 商业定位输出：【可选粘贴】\n真实能力边界：【工厂/贸易商/证书/案例/OEM/ODM/MOQ/交期等，按真实情况填写】\n\n# 输出结构\n用「=== 模块名 ===」分隔，全部中文。\n\n=== 品牌基础信息 ===\n品牌/公司名称 / 域名 / 品类 / 目标市场 / 供应链身份 / 文档版本 / 用途说明。\n\n=== B2B 品牌定位 ===\n【一句话定位】For [target buyer], [Brand] is a [supplier/manufacturer/solution provider] that [core outcome].\n中文释义 / 我们为谁而存在 / 我们解决什么采购问题 / 我们不是什么。\n\n=== 供应商价值主张 ===\n列出 6-10 条：价值主张 / 对采购方意义 / 需要的证明素材 / 适用页面。\n\n=== 语言风格指引 ===\n【我们怎么说话】6-8 条原则，每条包含：原则描述 / ✅ 我们会说（英文示例）/ ❌ 我们不说（英文示例）。\n【写作检验标准】读完这段文字，采购方应该感到 [专业/清楚/可靠/容易沟通]，而不是 [夸张/廉价/虚假/像平台卖家]。\n\n=== 禁止使用的表达 ===\n列出 12-20 条禁用表达：best quality、lowest price、factory direct no risk、limited offer 等。\n每条说明原因和替代表达。\n\n=== 页面语气规则 ===\n分别给：首页、产品线页、产品详情页、解决方案页、Factory/QC 页、FAQ 页、Contact/RFQ 页、博客页 的语气和 CTA 规则。\n\n=== 视觉风格方向 ===\n色彩方向 / 图片风格 / 图标风格 / 页面信息密度 / 整体视觉感受。\n必须适合 B2B 采购阅读，不要做成过度潮牌化 DTC。\n\n=== 证据使用规则 ===\n把可直接声明、需要证据后声明、禁止声明三类内容列清楚。\n\n=== 文档使用说明 ===\n填写 company-profile.json、brand-voice-b2b.json、capability.json、trust-evidence.json 的字段映射。\n\n# 输出规范\n- 全部中文，英文示例保留英文。\n- 不使用虚构创始人故事替代公司可信度。\n- 凡需人工补充证据的地方，用 [需人工补充：说明] 标注。",
+  "downstreamStages": ["s3_b2b_context"],
+  "relatedPrompts": ["d2a-brand-positioning", "d2c-capability-evidence"]
+}

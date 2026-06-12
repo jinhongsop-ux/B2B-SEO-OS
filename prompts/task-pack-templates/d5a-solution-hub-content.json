@@ -1,0 +1,195 @@
+{
+  "promptId": "d5a-solution-hub-content",
+  "name": "B2B 解决方案页内容生成",
+  "nameEn": "B2B Solution Hub Content Generator",
+  "category": "s11_content_tasks",
+  "version": "1.0",
+  "requiresHumanReview": true,
+  "canCreateTasks": false,
+  "canWriteWordPress": false,
+  "targetAgent": "external",
+  "workflowStepId": "content_tasks",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "brandOrCompanyName": {
+        "type": "string",
+        "description": "品牌/公司名"
+      },
+      "pageType": {
+        "type": "string",
+        "enum": ["Solution", "Application", "Material", "Process", "Buying Guide", "Compliance"],
+        "description": "页面类型"
+      },
+      "targetPageName": {
+        "type": "string",
+        "description": "目标页面名称"
+      },
+      "targetUrl": {
+        "type": "string",
+        "description": "目标 URL"
+      },
+      "coreKeyword": {
+        "type": "string",
+        "description": "核心关键词"
+      },
+      "relatedProductLines": {
+        "type": "string",
+        "description": "相关产品线（粘贴）"
+      },
+      "targetCustomerOrIndustry": {
+        "type": "string",
+        "description": "目标客户/行业"
+      },
+      "companyCapabilityAndEvidence": {
+        "type": "string",
+        "description": "公司能力与证据（粘贴 D2-C 相关内容）"
+      },
+      "d1CategoryKnowledge": {
+        "type": "string",
+        "description": "D1 品类知识库相关内容（粘贴）"
+      },
+      "targetCTA": {
+        "type": "string",
+        "enum": ["Request a Quote", "Download Catalog", "Ask for Sample", "Contact Sales"],
+        "description": "目标 CTA"
+      }
+    },
+    "required": [
+      "brandOrCompanyName",
+      "pageType",
+      "targetPageName",
+      "targetUrl",
+      "coreKeyword",
+      "relatedProductLines",
+      "targetCustomerOrIndustry",
+      "companyCapabilityAndEvidence",
+      "d1CategoryKnowledge",
+      "targetCTA"
+    ]
+  },
+  "outputSchema": {
+    "schemaName": "d5a_solution_hub_content_v1",
+    "type": "object",
+    "properties": {
+      "seoFields": {
+        "type": "object",
+        "description": "SEO 字段",
+        "properties": {
+          "metaTitle": { "type": "string" },
+          "metaDescription": { "type": "string" },
+          "h1": { "type": "string" },
+          "suggestedUrl": { "type": "string" },
+          "breadcrumb": { "type": "string" }
+        }
+      },
+      "heroSection": {
+        "type": "object",
+        "description": "页面开头 Hero",
+        "properties": {
+          "h1": { "type": "string" },
+          "intro": { "type": "string" },
+          "primaryCTA": { "type": "string" },
+          "secondaryCTA": { "type": "string" }
+        }
+      },
+      "procurementPainPoints": {
+        "type": "array",
+        "description": "采购问题与场景痛点（4-6个）",
+        "items": { "type": "string" }
+      },
+      "solutionFramework": {
+        "type": "array",
+        "description": "解决方案框架（3-5个模块）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "moduleName": { "type": "string" },
+            "content": { "type": "string" }
+          }
+        }
+      },
+      "recommendedProductLines": {
+        "type": "array",
+        "description": "推荐产品线或能力",
+        "items": {
+          "type": "object",
+          "properties": {
+            "productLine": { "type": "string" },
+            "applicableReason": { "type": "string" },
+            "keySpecs": { "type": "string" },
+            "internalLinkUrl": { "type": "string" }
+          }
+        }
+      },
+      "customAndProjectSupport": {
+        "type": "object",
+        "description": "定制与项目支持"
+      },
+      "qualityControlAndEvidence": {
+        "type": "object",
+        "description": "质量控制与证据"
+      },
+      "faq": {
+        "type": "array",
+        "description": "FAQ（8-12个 B2B FAQ）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "question": { "type": "string" },
+            "answer": { "type": "string" }
+          }
+        }
+      },
+      "ctaBlocks": {
+        "type": "array",
+        "description": "CTA 区块（3版）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string" },
+            "text": { "type": "string" }
+          }
+        }
+      },
+      "internalLinkSuggestions": {
+        "type": "object",
+        "description": "内链建议",
+        "properties": {
+          "productPages": { "type": "array", "items": { "type": "string" } },
+          "capabilityPages": { "type": "array", "items": { "type": "string" } },
+          "trustPages": { "type": "array", "items": { "type": "string" } },
+          "resourcePages": { "type": "array", "items": { "type": "string" } },
+          "rfqPage": { "type": "string" }
+        }
+      }
+    },
+    "required": [
+      "seoFields",
+      "heroSection",
+      "procurementPainPoints",
+      "solutionFramework",
+      "recommendedProductLines",
+      "customAndProjectSupport",
+      "qualityControlAndEvidence",
+      "faq",
+      "ctaBlocks",
+      "internalLinkSuggestions"
+    ]
+  },
+  "forbiddenActions": [
+    "不使用 DTC 情绪化促销",
+    "内容必须服务采购决策和询盘转化",
+    "全部中文说明，页面正文可输出英文",
+    "没有证据时写\"建议展示的证据\"，不要虚构"
+  ],
+  "humanChecklist": [
+    "确认 Hero 导语是否说明了面向谁、解决什么问题",
+    "验证推荐产品线是否与页面主题相关",
+    "检查 FAQ 是否覆盖核心采购问题",
+    "核实内链建议是否覆盖商业页和信任页"
+  ],
+  "markdownTemplate": "# d5a-solution-hub-content\n\n# 角色定义\n你是一名 B2B 解决方案页面策划师、SEO 内容架构师和询盘转化文案专家。\n你的任务是生成适合供应商独立站的 Solution / Application / Material / Process / Buying Guide 页面内容。\n\n# 输入信息\n品牌/公司名：【填写】\n页面类型：【Solution / Application / Material / Process / Buying Guide / Compliance】\n目标页面名称：【填写】\n目标 URL：【填写】\n核心关键词：【填写】\n相关产品线：【粘贴】\n目标客户/行业：【填写】\n公司能力与证据：【粘贴 D2-C 相关内容】\nD1 品类知识库相关内容：【粘贴】\n目标 CTA：【Request a Quote / Download Catalog / Ask for Sample / Contact Sales】\n\n# 输出结构\n\n## 1. SEO 字段\nMeta Title / Meta Description / H1 / Suggested URL / Breadcrumb。\n\n## 2. 页面开头 Hero\nH1、2-3 句导语、主 CTA、次 CTA。\n导语必须说明：面向谁、解决什么采购/应用问题、我们如何支持。\n\n## 3. 采购问题与场景痛点\n列出 4-6 个采购方在该场景下的真实问题。\n\n## 4. 解决方案框架\n用 3-5 个模块解释解决方案：产品匹配、材料/工艺、定制、质量控制、交付与支持。\n\n## 5. 推荐产品线或能力\n列出相关产品线：产品线 / 适用原因 / 关键规格 / 内链 URL。\n\n## 6. 定制与项目支持\n说明可定制项、设计文件、样品、MOQ、交期、沟通流程。\n不知道的数据标注 [需人工补充]。\n\n## 7. 质量控制与证据\n根据输入资料写 QC、证书、检测、案例或流程证明。\n没有证据时写\"建议展示的证据\"，不要虚构。\n\n## 8. FAQ\n输出 8-12 个 B2B FAQ，覆盖 MOQ、sample、lead time、customization、shipping、quality、certification、pricing。\n\n## 9. CTA 区块\n输出 3 版 CTA：强询盘、温和咨询、资料下载。\n\n## 10. 内链建议\n列出应该链接到的产品页、能力页、信任页、资源页、RFQ 页。\n\n# 输出规范\n- 全部中文说明，页面正文可输出英文。\n- 不使用 DTC 情绪化促销。\n- 内容必须服务采购决策和询盘转化。",
+  "downstreamStages": ["s11_content_tasks"],
+  "relatedPrompts": ["d5b-style-html-conversion"]
+}

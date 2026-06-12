@@ -1,0 +1,188 @@
+{
+  "promptId": "d1b-category-knowledge",
+  "name": "B2B 品类知识库",
+  "nameEn": "B2B Category Knowledge Base",
+  "category": "s3_b2b_context",
+  "version": "1.0",
+  "requiresHumanReview": true,
+  "canCreateTasks": false,
+  "canWriteWordPress": false,
+  "targetAgent": "external",
+  "workflowStepId": "b2b_context",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "industryNameCn": {
+        "type": "string",
+        "description": "行业/品类名称（中文）"
+      },
+      "industryNameEn": {
+        "type": "string",
+        "description": "行业/品类名称（英文）"
+      },
+      "targetMarket": {
+        "type": "string",
+        "description": "目标市场"
+      },
+      "supplyChainIdentity": {
+        "type": "string",
+        "description": "供应链身份"
+      },
+      "d1aOutput": {
+        "type": "string",
+        "description": "D1-A 行业与采购认知表输出（完整粘贴）"
+      }
+    },
+    "required": [
+      "industryNameCn",
+      "industryNameEn",
+      "targetMarket",
+      "supplyChainIdentity",
+      "d1aOutput"
+    ]
+  },
+  "outputSchema": {
+    "schemaName": "d1b_category_knowledge_v1",
+    "type": "object",
+    "properties": {
+      "productIndustryBasics": {
+        "type": "object",
+        "description": "产品与行业基础知识",
+        "properties": {
+          "whatIsProduct": { "type": "object" },
+          "productClassification": { "type": "object" },
+          "keyParameters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "parameterName": { "type": "string" },
+                "commonRange": { "type": "string" },
+                "impactOnProcurement": { "type": "string" },
+                "pagePlacement": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "materialProcessQuality": {
+        "type": "object",
+        "description": "材料、工艺、质量",
+        "properties": {
+          "commonMaterials": { "type": "array" },
+          "coreProcesses": { "type": "array" },
+          "qualityControl": { "type": "object" }
+        }
+      },
+      "applicationScenarios": {
+        "type": "array",
+        "description": "应用场景与行业解决方案（8-12个）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "scenario": { "type": "string" },
+            "customerType": { "type": "string" },
+            "usageMethod": { "type": "string" },
+            "procurementFocus": { "type": "string" },
+            "possiblePage": { "type": "string" }
+          }
+        }
+      },
+      "buyerRolesAndQuestions": {
+        "type": "array",
+        "description": "采购角色与决策问题",
+        "items": {
+          "type": "object",
+          "properties": {
+            "role": { "type": "string" },
+            "concerns": { "type": "string" },
+            "contentNeeded": { "type": "string" },
+            "bestCTA": { "type": "string" }
+          }
+        }
+      },
+      "sellingPoints": {
+        "type": "object",
+        "description": "卖点与价值主张",
+        "properties": {
+          "coreSellingPoints": { "type": "array" },
+          "safeExpressions": { "type": "array" },
+          "blacklistedPhrases": { "type": "array" }
+        }
+      },
+      "terminology": {
+        "type": "array",
+        "description": "专业术语表（40-60个）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "termCn": { "type": "string" },
+            "termEn": { "type": "string" },
+            "meaning": { "type": "string" },
+            "usageContext": { "type": "string" },
+            "suitableForProductPage": { "type": "boolean" }
+          }
+        }
+      },
+      "procurementFAQ": {
+        "type": "object",
+        "description": "采购 FAQ 与顾虑消除",
+        "properties": {
+          "highFrequencyQuestions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "question": { "type": "string" },
+                "answer": { "type": "string" },
+                "relatedPage": { "type": "string" }
+              }
+            }
+          },
+          "concernMitigation": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "concern": { "type": "string" },
+                "realWorry": { "type": "string" },
+                "websiteProofMethod": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "marketCompetitorOverview": {
+        "type": "object",
+        "description": "市场与竞品速览"
+      }
+    },
+    "required": [
+      "productIndustryBasics",
+      "materialProcessQuality",
+      "applicationScenarios",
+      "buyerRolesAndQuestions",
+      "sellingPoints",
+      "terminology",
+      "procurementFAQ",
+      "marketCompetitorOverview"
+    ]
+  },
+  "forbiddenActions": [
+    "不输出具体关键词列表和 SEO 关键词表",
+    "不输出具体文章选题列表",
+    "不虚构证书、虚构客户、虚构工厂照片、虚构案例",
+    "内容必须具体可用，不写\"根据情况填写\"",
+    "所有承诺都要区分\"可直接声明\"和\"需要证据后声明\""
+  ],
+  "humanChecklist": [
+    "确认产品分类体系是否完整覆盖实际产品线",
+    "验证关键参数是否反映采购方真实关注点",
+    "检查术语表是否准确且覆盖高频术语",
+    "核实 FAQ 回答是否可直接用于网站",
+    "确认禁用词清单是否完整"
+  ],
+  "markdownTemplate": "# d1b-category-knowledge\n\n# 角色定义\n你是一名资深 B2B 品类专家，同时具备跨境供应链、独立站内容运营和询盘转化经验。\n你的任务是建立一份完整的 B2B 品类知识库，用于后续产品页、解决方案页、信任页、博客和 RFQ 表单内容生成。\n\n# 输入信息\n行业/品类名称（中文）：【填写】\n行业/品类名称（英文）：【填写】\n目标市场：【填写】\n供应链身份：【填写】\nD1-A 行业与采购认知表输出：【完整粘贴】\n\n# 重要说明\n以下内容不在本知识库范围内，不要输出：\n- 具体关键词列表和 SEO 关键词表 → 服从 D3 关键词规划环节。\n- 具体文章选题列表 → 服从 D3 关键词映射输出。\n- 虚构证书、虚构客户、虚构工厂照片、虚构案例。\n\n# 输出结构\n按以下 8 个模块顺序输出，每个模块用「=== 模块名 ===」分隔。\n全部中文，专业术语保留英文。不要有任何开场白。\n\n=== 1_产品与行业基础知识 ===\n【1.1 产品是什么】定义 / 典型客户 / 终端应用 / 核心价值。\n【1.2 产品分类体系】按用途、材料、工艺、行业、订单类型五个维度分类，每类给运营建议。\n【1.3 关键参数】12-20 个参数，格式：参数名 | 常见范围 | 对采购/使用的影响 | 页面适用位置。\n\n=== 2_材料_工艺_质量 ===\n【2.1 常见材料】材料名称 / 特性 / 优缺点 / 适用场景 / 采购注意事项。\n【2.2 核心工艺】工艺名称 / 流程说明 / 对质量影响 / 可展示证据。\n【2.3 质量控制】来料、生产、半成品、成品、出货检验的检查点。\n\n=== 3_应用场景与行业解决方案 ===\n列出 8-12 个应用行业或场景：场景 / 客户类型 / 使用方式 / 采购关注点 / 可建设页面。\n\n=== 4_采购角色与决策问题 ===\n列出采购、技术、老板、质检、品牌/设计、分销商等角色的关注点。\n每个角色输出：他们关心什么 / 网站应给什么内容 / 最适合的 CTA。\n\n=== 5_卖点与价值主张 ===\n【5.1 B2B 核心卖点】10-15 条：卖点 / 具体说明 / 可证明素材 / 适用页面。\n【5.2 安全表达】把\"best / lowest price / top quality\"等夸张词替换成可信表达。\n【5.3 文案黑名单】12-18 个禁用词或短语，说明原因和替代表达。\n\n=== 6_专业术语表 ===\n40-60 个行业术语，按使用频率从高到低排列。\n格式：中文术语 | 英文术语 | 含义/说明 | 使用场景 | 是否适合出现在产品页。\n\n=== 7_采购 FAQ 与顾虑消除 ===\n【7.1 高频采购问题】20-30 个：问题 / 回答(60-150字) / 对应页面。\n必须包含 MOQ、lead time、sample、customization、payment、shipping、certification、quality、packaging。\n【7.2 采购顾虑与消除策略】10-15 个：顾虑 / 背后真实担忧 / 网站证明方式。\n\n=== 8_市场与竞品速览 ===\n主流供应商类型、常见价格/订单层级、行业趋势、竞品常见页面结构、差异化切入点。\n\n# 输出规范\n- 内容必须具体可用，不写\"根据情况填写\"。\n- 所有承诺都要区分\"可直接声明\"和\"需要证据后声明\"。\n- 直接从「=== 1_产品与行业基础知识 ===」开始输出。",
+  "downstreamStages": ["s3_b2b_context"],
+  "relatedPrompts": ["d1a-industry-cognition"]
+}

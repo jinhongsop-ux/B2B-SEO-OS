@@ -1,0 +1,84 @@
+{
+  "promptId": "d4d-image-alt-generator",
+  "name": "B2B 图片 ALT 与文件名生成",
+  "nameEn": "B2B Image ALT and Filename Generator",
+  "category": "s9_page_repair",
+  "version": "1.0",
+  "requiresHumanReview": true,
+  "canCreateTasks": false,
+  "canWriteWordPress": false,
+  "targetAgent": "external",
+  "workflowStepId": "page_repair",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "brandOrCompanyName": {
+        "type": "string",
+        "description": "品牌/公司名"
+      },
+      "siteDomain": {
+        "type": "string",
+        "description": "站点域名"
+      },
+      "industryCategory": {
+        "type": "string",
+        "description": "行业/品类"
+      },
+      "imageList": {
+        "type": "string",
+        "description": "图片清单：原文件名、图片内容说明、对应产品或页面（粘贴）"
+      },
+      "targetKeywordsOrUrls": {
+        "type": "string",
+        "description": "目标关键词或页面 URL（粘贴）"
+      }
+    },
+    "required": [
+      "brandOrCompanyName",
+      "siteDomain",
+      "industryCategory",
+      "imageList",
+      "targetKeywordsOrUrls"
+    ]
+  },
+  "outputSchema": {
+    "schemaName": "d4d_image_alt_generator_v1",
+    "type": "object",
+    "properties": {
+      "imageRecords": {
+        "type": "array",
+        "description": "图片记录表",
+        "items": {
+          "type": "object",
+          "properties": {
+            "imageId": { "type": "string" },
+            "originalFileName": { "type": "string" },
+            "newFileName": { "type": "string" },
+            "altText": { "type": "string" },
+            "caption": { "type": "string" },
+            "imageType": { "type": "string" },
+            "targetPage": { "type": "string" },
+            "folder": { "type": "string" },
+            "notes": { "type": "string" }
+          }
+        }
+      }
+    },
+    "required": ["imageRecords"]
+  },
+  "forbiddenActions": [
+    "文件名英文小写，用短横线，不超过 80 字符",
+    "ALT 描述真实图片内容 + 产品/应用语义，不堆关键词",
+    "工厂、证书、案例图不得夸大实际内容",
+    "如图片内容不清楚，标注 [需人工确认]"
+  ],
+  "humanChecklist": [
+    "确认文件名是否符合命名规则（小写、短横线、不超过80字符）",
+    "验证 ALT 文本是否描述真实图片内容",
+    "检查工厂/证书图片是否标注了夸大风险",
+    "核实不确定图片是否标注了[需人工确认]"
+  ],
+  "markdownTemplate": "# d4d-image-alt-generator\n\n# 角色定义\n你是一名 B2B 网站图片 SEO 与素材管理专家。\n你的任务是为产品图、工厂图、工艺图、质检图、包装图、案例图生成 SEO 友好的文件名、ALT、Caption 和使用位置。\n\n# 输入信息\n品牌/公司名：【填写】\n站点域名：【填写】\n行业/品类：【填写】\n图片清单：【粘贴：原文件名、图片内容说明、对应产品或页面】\n目标关键词或页面 URL：【粘贴】\n\n# 输出字段\n请用表格输出：Image ID / Original File Name / New File Name / ALT Text / Caption / Image Type / Target Page / Folder / Notes。\n\n# 命名规则\n- 文件名英文小写，用短横线，不超过 80 字符。\n- ALT 描述真实图片内容 + 产品/应用语义，不堆关键词。\n- 工厂、证书、案例图不得夸大实际内容。\n- 如图片内容不清楚，标注 [需人工确认]。",
+  "downstreamStages": ["s9_page_repair"],
+  "relatedPrompts": ["d4c-page-data-pack"]
+}

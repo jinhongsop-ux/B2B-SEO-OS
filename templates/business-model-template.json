@@ -1,0 +1,76 @@
+{
+  "$schema": "business-model-v1",
+  "description": "B2B 商业定位与站点类型定义，对应 D0-A 输出",
+  "siteType": "",
+  "siteTypeOptions": [
+    "factory_site",
+    "trading_company_site",
+    "oem_supplier_site",
+    "wholesale_supplier_site",
+    "solution_provider_site",
+    "lead_gen_site"
+  ],
+  "targetMarket": [],
+  "targetBuyerRoles": [
+    {
+      "role": "",
+      "companyType": "",
+      "procurementGoal": "",
+      "coreConcerns": "",
+      "inquiryTrigger": ""
+    }
+  ],
+  "businessModel": "",
+  "businessModelOptions": [
+    "oem_odm",
+    "wholesale",
+    "project_solution",
+    "trading",
+    "mixed"
+  ],
+  "primaryConversionGoal": "",
+  "primaryConversionGoalOptions": [
+    "request_a_quote",
+    "contact_us",
+    "whatsapp",
+    "email_click",
+    "catalog_download",
+    "sample_request",
+    "send_design_file"
+  ],
+  "secondaryGoals": [],
+  "supplyChainIdentity": "",
+  "supplyChainIdentityOptions": [
+    "factory",
+    "trading_company",
+    "brand_owner",
+    "agent",
+    "personal_lead_gen",
+    "undecided"
+  ],
+  "supportsOemOdm": null,
+  "hasRealFactoryImages": null,
+  "hasCertificates": null,
+  "hasCaseStudies": null,
+  "riskBoundaries": [],
+  "valuePropositions": [],
+  "techStack": {
+    "cms": "wordpress",
+    "pageBuilder": "",
+    "pageBuilderOptions": ["elementor", "gutenberg", "other"],
+    "ecommerceMode": "",
+    "ecommerceModeOptions": ["woocommerce_catalog", "woocommerce_quote", "none"],
+    "acfEnabled": false,
+    "formPlugin": "",
+    "trackingStack": {
+      "gtm": false,
+      "ga4": false,
+      "gsc": false
+    }
+  },
+  "launchPriority": {
+    "p0": [],
+    "p1": [],
+    "p2": []
+  }
+}

@@ -1,0 +1,156 @@
+{
+  "promptId": "d2c-capability-evidence",
+  "name": "B2B 供应商能力与证据数据库",
+  "nameEn": "B2B Supplier Capability and Evidence Database",
+  "category": "s3_b2b_context",
+  "version": "1.0",
+  "requiresHumanReview": true,
+  "canCreateTasks": false,
+  "canWriteWordPress": false,
+  "targetAgent": "external",
+  "workflowStepId": "b2b_context",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "d2bOutput": {
+        "type": "string",
+        "description": "D2-B 供应商品牌调性文档（完整粘贴）"
+      },
+      "d1Output": {
+        "type": "string",
+        "description": "D1 行业与采购认知表（完整粘贴）"
+      },
+      "realCompanyMaterials": {
+        "type": "string",
+        "description": "真实公司资料：公司年限、地点、团队、设备、工厂图、生产线、证书、检测报告、案例、出口国家等"
+      },
+      "missingMaterials": {
+        "type": "string",
+        "description": "缺失资料清单（没有则写无）"
+      }
+    },
+    "required": [
+      "d2bOutput",
+      "d1Output",
+      "realCompanyMaterials"
+    ]
+  },
+  "outputSchema": {
+    "schemaName": "d2c_capability_evidence_v1",
+    "type": "object",
+    "properties": {
+      "companyProfile": {
+        "type": "object",
+        "description": "PART 1 公司基础档案",
+        "properties": {
+          "companyName": { "type": "string" },
+          "supplyChainIdentity": { "type": "string" },
+          "location": { "type": "string" },
+          "serviceMarkets": { "type": "string" },
+          "mainProductLines": { "type": "array", "items": { "type": "string" } },
+          "targetCustomers": { "type": "array", "items": { "type": "string" } },
+          "businessModel": { "type": "string" },
+          "publiclyDeclarable": { "type": "array", "items": { "type": "string" } },
+          "notPublicOrPending": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "capabilityDatabase": {
+        "type": "array",
+        "description": "PART 2 能力数据库（8个分类）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "category": { "type": "string" },
+            "capabilities": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "capabilityName": { "type": "string" },
+                  "details": { "type": "string" },
+                  "whyBuyerCares": { "type": "string" },
+                  "availableEvidence": { "type": "string" },
+                  "applicablePages": { "type": "string" },
+                  "credibleExpression": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "evidenceLibrary": {
+        "type": "array",
+        "description": "PART 3 证据素材库",
+        "items": {
+          "type": "object",
+          "properties": {
+            "materialName": { "type": "string" },
+            "materialType": { "type": "string" },
+            "alreadyHave": { "type": "boolean" },
+            "usage": { "type": "string" },
+            "applicablePages": { "type": "string" },
+            "altDirection": { "type": "string" },
+            "supplementSuggestion": { "type": "string" }
+          }
+        }
+      },
+      "caseLibrary": {
+        "type": "array",
+        "description": "PART 4 案例素材库",
+        "items": {
+          "type": "object",
+          "properties": {
+            "industry": { "type": "string" },
+            "countryOrRegion": { "type": "string" },
+            "product": { "type": "string" },
+            "requirement": { "type": "string" },
+            "solution": { "type": "string" },
+            "result": { "type": "string" },
+            "publicityLevel": { "type": "string" }
+          }
+        }
+      },
+      "faqEvidenceMapping": {
+        "type": "array",
+        "description": "PART 5 FAQ 证据映射",
+        "items": {
+          "type": "object",
+          "properties": {
+            "question": { "type": "string" },
+            "recommendedAnswerDirection": { "type": "string" },
+            "evidenceNeeded": { "type": "string" },
+            "recommendedLinkPage": { "type": "string" }
+          }
+        }
+      },
+      "jsonFieldMapping": {
+        "type": "object",
+        "description": "PART 6 JSON 字段映射建议"
+      }
+    },
+    "required": [
+      "companyProfile",
+      "capabilityDatabase",
+      "evidenceLibrary",
+      "caseLibrary",
+      "faqEvidenceMapping",
+      "jsonFieldMapping"
+    ]
+  },
+  "forbiddenActions": [
+    "不编造证书、客户、产能、工厂规模或检测数据",
+    "明确标注：可直接使用 / 需人工补充 / 不建议声明",
+    "案例可以匿名，但不能虚构行业、国家、数量或结果",
+    "没有证据的内容只能写成能力方向或待补充，不得写成事实"
+  ],
+  "humanChecklist": [
+    "确认公司基础档案是否准确反映真实情况",
+    "验证能力数据库每条是否基于真实能力",
+    "检查证据素材标记是否正确（已有/待补充）",
+    "确认案例是否基于真实项目（非虚构）",
+    "核实哪些内容标注了\"需人工补充\""
+  ],
+  "markdownTemplate": "# d2c-capability-evidence\n\n# 角色定义\n你是一名 B2B 供应商内容架构师，熟悉工厂能力展示、质量控制、证书合规、案例包装、询盘转化与 E-E-A-T。\n你的任务是把真实公司资料整理成可用于全站内容生产的证据与能力数据库。\n\n# 输入信息\nD2-B 供应商品牌调性文档：【完整粘贴】\nD1 行业与采购认知表：【完整粘贴】\n真实公司资料：【填写：公司年限、地点、团队、设备、工厂图、生产线、证书、检测报告、案例、出口国家等】\n缺失资料清单：【填写，没有则写无】\n\n# 重要原则\n原则一：证据优先。没有证据的内容只能写成能力方向或待补充，不得写成事实。\n原则二：B2B 可信度来自细节，不来自夸张形容词。\n原则三：每条能力必须说明采购方为什么关心。\n原则四：案例可以匿名，但不能虚构行业、国家、数量或结果。\n原则五：把\"可公开展示\"和\"内部销售跟进使用\"的素材分开。\n\n# 输出结构\n\n## PART 1｜公司基础档案\n公司名称 / 供应链身份 / 所在地 / 服务市场 / 主营产品线 / 目标客户 / 业务模式 / 可公开声明内容 / 不应公开或待补充内容。\n\n## PART 2｜能力数据库\n按 8 个分类输出：\n1. Product Capability\n2. Customization Capability\n3. Manufacturing Capability\n4. Quality Control\n5. Certification & Compliance\n6. Packaging & Logistics\n7. Sample & Lead Time\n8. Communication & Sales Support\n每条格式：能力名称 / 具体说明 / 采购方关心原因 / 可用证据 / 适用页面 / 可信表达。\n\n## PART 3｜证据素材库\n按类型输出：工厂图、设备图、生产流程图、质检图、证书、检测报告、包装图、案例图、团队图、物流图。\n每条格式：素材名称 / 是否已有 / 用途 / 可放页面 / ALT 方向 / 缺失补充建议。\n\n## PART 4｜案例素材库\n如有真实案例，整理为：行业 / 国家或区域 / 产品 / 需求 / 解决方案 / 结果 / 可公开程度。\n如没有真实案例，输出\"案例建设计划\"，不能虚构。\n\n## PART 5｜FAQ 证据映射\n把采购 FAQ 和可证明素材对应起来。\n格式：问题 / 推荐回答方向 / 需要证据 / 推荐链接页面。\n\n## PART 6｜JSON 字段映射\n输出 company-profile.json、capability.json、trust-evidence.json 的建议字段结构。\n\n# 输出规范\n- 全部中文，专业术语保留英文。\n- 明确标注：可直接使用 / 需人工补充 / 不建议声明。\n- 不要编造证书、客户、产能、工厂规模或检测数据。",
+  "downstreamStages": ["s3_b2b_context"],
+  "relatedPrompts": ["d2a-brand-positioning", "d2b-brand-voice"]
+}

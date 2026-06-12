@@ -1,0 +1,90 @@
+{
+  "promptId": "d3-scoring-criteria",
+  "name": "B2B 页面优先级评分标准",
+  "nameEn": "B2B Page Priority Scoring Criteria",
+  "category": "s4_seed_keywords",
+  "version": "1.0",
+  "requiresHumanReview": true,
+  "canCreateTasks": false,
+  "canWriteWordPress": false,
+  "targetAgent": "external",
+  "workflowStepId": "seed_keywords",
+  "inputSchema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "outputSchema": {
+    "schemaName": "d3_scoring_criteria_v1",
+    "type": "object",
+    "properties": {
+      "dimensions": {
+        "type": "array",
+        "description": "评分维度",
+        "items": {
+          "type": "object",
+          "properties": {
+            "dimension": { "type": "string" },
+            "maxScore": { "type": "number" },
+            "description": { "type": "string" }
+          }
+        }
+      },
+      "inquiryValue": {
+        "type": "object",
+        "description": "询盘价值（满分30）",
+        "properties": {
+          "maxScore": { "type": "number" },
+          "criteria": { "type": "string" }
+        }
+      },
+      "supplyCapabilityMatch": {
+        "type": "object",
+        "description": "供应能力匹配（满分25）",
+        "properties": {
+          "maxScore": { "type": "number" },
+          "criteria": { "type": "string" }
+        }
+      },
+      "seoOpportunity": {
+        "type": "object",
+        "description": "SEO 机会（满分20）",
+        "properties": {
+          "maxScore": { "type": "number" },
+          "criteria": { "type": "string" }
+        }
+      },
+      "trustEvidenceCompleteness": {
+        "type": "object",
+        "description": "信任证据完整度（满分15）",
+        "properties": {
+          "maxScore": { "type": "number" },
+          "criteria": { "type": "string" }
+        }
+      },
+      "pageBuildDifficulty": {
+        "type": "object",
+        "description": "建页难度（满分10）",
+        "properties": {
+          "maxScore": { "type": "number" },
+          "criteria": { "type": "string" }
+        }
+      }
+    },
+    "required": [
+      "inquiryValue",
+      "supplyCapabilityMatch",
+      "seoOpportunity",
+      "trustEvidenceCompleteness",
+      "pageBuildDifficulty"
+    ]
+  },
+  "forbiddenActions": [],
+  "humanChecklist": [
+    "确认评分维度权重是否合理",
+    "验证评分标准是否适用于所有页面类型"
+  ],
+  "markdownTemplate": "# d3-scoring-criteria\n\n| 评分维度 | 满分 | 说明 |\n| 询盘价值 | 30 | 该页面是否对应高意向采购词、供应商词、定制词或主力产品线。 |\n| 供应能力匹配 | 25 | 是否真实能供货/定制/交付，是否有参数和素材支撑。 |\n| SEO 机会 | 20 | 搜索量、KD、竞品弱点、长尾聚类数量。 |\n| 信任证据完整度 | 15 | 是否有图片、工艺、QC、证书、案例或流程证明。 |\n| 建页难度 | 10 | 资料是否齐全，是否能快速上线。低难度高分。 |",
+  "downstreamStages": ["s4_seed_keywords"],
+  "relatedPrompts": ["d3-0-seed-keyword-plan", "d3-keyword-clustering", "d4b-page-priority-scoring"]
+}

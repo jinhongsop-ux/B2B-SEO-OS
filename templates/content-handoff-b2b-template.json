@@ -1,0 +1,98 @@
+{
+  "$schema": "content-handoff-b2b-v1",
+  "description": "Content Engine 交接包模板，对应 D7/S12 产出",
+  "contentId": "",
+  "pageType": "",
+  "pageTypeOptions": [
+    "supplier_guide",
+    "material_comparison",
+    "application_guide",
+    "custom_guide",
+    "qc_guide",
+    "faq_cluster",
+    "case_study",
+    "cost_lead_time_guide",
+    "solution_page",
+    "buying_guide"
+  ],
+  "targetUrl": "",
+  "targetKeywords": [
+    {
+      "keyword": "",
+      "intent": "",
+      "searchVolume": null,
+      "priority": ""
+    }
+  ],
+  "contentBrief": {
+    "title": "",
+    "h1": "",
+    "metaTitle": "",
+    "metaDescription": "",
+    "slug": "",
+    "wordCount": { "min": 0, "max": 0 },
+    "outline": [
+      {
+        "heading": "",
+        "level": 2,
+        "keyPoints": [],
+        "targetWordCount": null
+      }
+    ]
+  },
+  "requiredEvidence": [
+    {
+      "evidenceType": "",
+      "description": "",
+      "source": ""
+    }
+  ],
+  "internalLinks": [
+    {
+      "targetUrl": "",
+      "anchorText": "",
+      "context": "",
+      "linkType": "",
+      "linkTypeOptions": ["product_page", "capability_page", "solution_page", "rfq_page", "about_page", "blog_post"]
+    }
+  ],
+  "conversionGoal": {
+    "primaryCTA": "",
+    "ctaText": "",
+    "ctaDestination": "",
+    "secondaryCTA": ""
+  },
+  "styleNotes": {
+    "tone": "",
+    "technicalDepth": "",
+    "audience": "",
+    "avoidTopics": [],
+    "mustInclude": []
+  },
+  "brandVoiceRef": {
+    "mustSay": [],
+    "mustNotSay": []
+  },
+  "qaRules": {
+    "factCheckRequired": true,
+    "evidenceRequired": true,
+    "internalLinkMinimum": 3,
+    "ctaRequired": true,
+    "noFabricatedCases": true,
+    "noFabricatedCertificates": true,
+    "noCannibalization": true
+  },
+  "generatesFullArticle": false,
+  "status": "",
+  "statusOptions": [
+    "draft",
+    "brief_ready",
+    "handoff_ready",
+    "sent_to_engine",
+    "draft_received",
+    "qa_review",
+    "revision_needed",
+    "approved",
+    "published"
+  ]
+}

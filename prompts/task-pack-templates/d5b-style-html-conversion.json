@@ -1,0 +1,116 @@
+{
+  "promptId": "d5b-style-html-conversion",
+  "name": "B2B 样式提取与 HTML 转换",
+  "nameEn": "B2B Style Extraction and HTML Conversion",
+  "category": "s11_content_tasks",
+  "version": "1.0",
+  "requiresHumanReview": true,
+  "canCreateTasks": false,
+  "canWriteWordPress": false,
+  "targetAgent": "external",
+  "workflowStepId": "content_tasks",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "referencePageSourceOrScreenshot": {
+        "type": "string",
+        "description": "首页或参考页面源码/截图文字说明（粘贴）"
+      },
+      "d5aGeneratedContent": {
+        "type": "string",
+        "description": "D5-A 生成的完整内容（粘贴）"
+      },
+      "brandVisualStyle": {
+        "type": "string",
+        "enum": ["简洁", "工业感", "科技感", "专业", "高端", "其他"],
+        "description": "品牌视觉要求"
+      },
+      "allowImagePlaceholder": {
+        "type": "string",
+        "enum": ["是", "否"],
+        "description": "是否允许使用图片占位"
+      },
+      "useElementorHtmlModule": {
+        "type": "string",
+        "enum": ["是", "否"],
+        "description": "是否使用 Elementor HTML 模块"
+      }
+    },
+    "required": [
+      "d5aGeneratedContent",
+      "brandVisualStyle"
+    ]
+  },
+  "outputSchema": {
+    "schemaName": "d5b_style_html_conversion_v1",
+    "type": "object",
+    "properties": {
+      "styleExtractionReport": {
+        "type": "object",
+        "description": "Step 1：风格提取报告",
+        "properties": {
+          "colors": { "type": "string" },
+          "fontSizeHierarchy": { "type": "string" },
+          "buttonStyle": { "type": "string" },
+          "cardStyle": { "type": "string" },
+          "spacing": { "type": "string" },
+          "imageAspectRatio": { "type": "string" },
+          "iconStyle": { "type": "string" },
+          "contentDensity": { "type": "string" }
+        }
+      },
+      "pageModulePlan": {
+        "type": "array",
+        "description": "Step 2：页面模块规划",
+        "items": { "type": "string" }
+      },
+      "htmlCode": {
+        "type": "string",
+        "description": "Step 3：HTML 代码（完整 HTML，不包含 <html><body> 外壳）"
+      },
+      "imageAndMaterialList": {
+        "type": "array",
+        "description": "Step 4：图片与素材清单",
+        "items": {
+          "type": "object",
+          "properties": {
+            "position": { "type": "string" },
+            "imageNeeded": { "type": "string" },
+            "suggestedFileName": { "type": "string" },
+            "alt": { "type": "string" },
+            "generationOrShootingTip": { "type": "string" }
+          }
+        }
+      },
+      "prePublishChecklist": {
+        "type": "array",
+        "description": "Step 5：发布检查清单",
+        "items": { "type": "string" }
+      }
+    },
+    "required": [
+      "styleExtractionReport",
+      "pageModulePlan",
+      "htmlCode",
+      "imageAndMaterialList",
+      "prePublishChecklist"
+    ]
+  },
+  "forbiddenActions": [
+    "HTML 注释清晰",
+    "不要引入外部 JS",
+    "CSS 写在 <style> 内，并尽量限定作用域",
+    "页面不要像 DTC 促销页，要像专业 B2B 解决方案页",
+    "class 命名加品牌前缀，避免污染主题"
+  ],
+  "humanChecklist": [
+    "确认风格提取是否准确反映参考页面",
+    "验证 HTML 是否语义化且移动端友好",
+    "检查 CSS 是否限定了作用域",
+    "核实图片清单是否完整覆盖所有图片位置",
+    "确认 CTA 按钮链接是否使用了占位 URL"
+  ],
+  "markdownTemplate": "# d5b-style-html-conversion\n\n# 角色定义\n你是一名前端内容排版专家，熟悉 WordPress、Elementor、B2B 网站视觉层级、SEO HTML 结构和响应式模块。\n你的任务是先学习已有页面风格，再把 Solution Hub 内容转换为可直接嵌入 WordPress 的 HTML 模块。\n\n# 输入信息\n第一部分：首页或参考页面源码/截图文字说明：【粘贴】\n第二部分：D5-A 生成的完整内容：【粘贴】\n品牌视觉要求：【简洁/工业感/科技感/专业/高端/其他】\n是否允许使用图片占位：【是/否】\n是否使用 Elementor HTML 模块：【是/否】\n\n# 输出步骤\n\n## Step 1：风格提取报告\n提取：色彩、字号层级、按钮样式、卡片样式、间距、图片比例、icon 风格、内容密度。\n\n## Step 2：页面模块规划\n按 B2B 阅读路径重组内容：Hero → Problem → Solution → Product Fit → Capability → QC → FAQ → CTA。\n\n## Step 3：HTML 代码\n输出完整 HTML，不包含 <html><body> 外壳。\n要求：\n- 语义化 H2/H3。\n- 移动端友好。\n- 图片用占位 div 或 <img> 占位，提供 alt。\n- CTA 按钮链接用占位 URL。\n- class 命名加品牌前缀，避免污染主题。\n\n## Step 4：图片与素材清单\n列出每个图片位置需要什么图、建议文件名、ALT、生成/拍摄提示。\n\n## Step 5：发布检查清单\n列出复制到 WordPress 前的检查项。\n\n# 输出规范\n- HTML 注释清晰。\n- 不要引入外部 JS。\n- CSS 写在 <style> 内，并尽量限定作用域。\n- 页面不要像 DTC 促销页，要像专业 B2B 解决方案页。",
+  "downstreamStages": ["s11_content_tasks"],
+  "relatedPrompts": ["d5a-solution-hub-content"]
+}

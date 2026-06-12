@@ -44,7 +44,7 @@ async function main() {
   assert.equal(health.wordpressWritesEnabled, false)
 
   const prompts = await getJson('/api/prompts')
-  assert.equal(prompts.prompts.length, 11)
+  assert.equal(prompts.prompts.length, 18)
   assert.ok(prompts.prompts.every((prompt) => prompt.canWriteWordPress === false))
   assert.ok(prompts.prompts.some((prompt) => prompt.promptId === 'keyword-ai-cleaning-v1'))
 

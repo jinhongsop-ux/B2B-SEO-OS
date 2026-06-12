@@ -1,0 +1,151 @@
+{
+  "promptId": "d3-0-seed-keyword-plan",
+  "name": "B2B 种子词作战表",
+  "nameEn": "B2B Seed Keyword Battle Plan",
+  "category": "s4_seed_keywords",
+  "version": "1.0",
+  "requiresHumanReview": true,
+  "canCreateTasks": false,
+  "canWriteWordPress": false,
+  "targetAgent": "external",
+  "workflowStepId": "seed_keywords",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "siteDomain": {
+        "type": "string",
+        "description": "站点域名"
+      },
+      "industryName": {
+        "type": "string",
+        "description": "行业/品类名称"
+      },
+      "targetMarket": {
+        "type": "string",
+        "description": "目标市场"
+      },
+      "supplyChainIdentity": {
+        "type": "string",
+        "description": "供应链身份"
+      },
+      "d0Output": {
+        "type": "string",
+        "description": "D0 商业定位输出（粘贴）"
+      },
+      "d1Output": {
+        "type": "string",
+        "description": "D1 行业与采购认知输出（粘贴）"
+      },
+      "d2Output": {
+        "type": "string",
+        "description": "D2 供应商品牌与能力输出（粘贴）"
+      },
+      "mainProductLines": {
+        "type": "string",
+        "description": "主要产品线（填写或粘贴）"
+      },
+      "mainApplicationIndustries": {
+        "type": "string",
+        "description": "主要应用行业（填写或粘贴）"
+      }
+    },
+    "required": [
+      "siteDomain",
+      "industryName",
+      "targetMarket",
+      "supplyChainIdentity",
+      "d0Output",
+      "d1Output",
+      "d2Output",
+      "mainProductLines",
+      "mainApplicationIndustries"
+    ]
+  },
+  "outputSchema": {
+    "schemaName": "d3_0_seed_keyword_plan_v1",
+    "type": "object",
+    "properties": {
+      "productKeywordMatrix": {
+        "type": "array",
+        "description": "模块1：核心产品词矩阵（T1/T2/T3）",
+        "items": {
+          "type": "object",
+          "properties": {
+            "seedKeywordEn": { "type": "string" },
+            "explanationCn": { "type": "string" },
+            "relatedProductLine": { "type": "string" },
+            "priority": { "type": "string", "enum": ["P0", "P1", "P2"] },
+            "toolExecutionSuggestion": { "type": "string" }
+          }
+        }
+      },
+      "supplierIdentityMatrix": {
+        "type": "array",
+        "description": "模块2：供应商身份词矩阵",
+        "items": {
+          "type": "object",
+          "properties": {
+            "seedKeywordEn": { "type": "string" },
+            "explanationCn": { "type": "string" },
+            "relatedProductLine": { "type": "string" },
+            "priority": { "type": "string" },
+            "toolExecutionSuggestion": { "type": "string" }
+          }
+        }
+      },
+      "customOemMatrix": {
+        "type": "array",
+        "description": "模块3：定制与 OEM/ODM 词矩阵",
+        "items": { "type": "object" }
+      },
+      "applicationIndustryMatrix": {
+        "type": "array",
+        "description": "模块4：应用行业词矩阵",
+        "items": { "type": "object" }
+      },
+      "materialProcessCertMatrix": {
+        "type": "array",
+        "description": "模块5：材料/工艺/认证词矩阵",
+        "items": { "type": "object" }
+      },
+      "procurementQuestionKeywords": {
+        "type": "array",
+        "description": "模块6：采购问题与 PAA 触发词（50-80个）",
+        "items": { "type": "string" }
+      },
+      "competitorReverseList": {
+        "type": "array",
+        "description": "模块7：竞品反查清单",
+        "items": { "type": "object" }
+      },
+      "toolExecutionChecklist": {
+        "type": "object",
+        "description": "模块8：工具执行清单（Semrush/Ahrefs/GKP/PAA/Suggest/竞品反查）"
+      }
+    },
+    "required": [
+      "productKeywordMatrix",
+      "supplierIdentityMatrix",
+      "customOemMatrix",
+      "applicationIndustryMatrix",
+      "materialProcessCertMatrix",
+      "procurementQuestionKeywords",
+      "competitorReverseList",
+      "toolExecutionChecklist"
+    ]
+  },
+  "forbiddenActions": [
+    "不要直接生成最终页面架构，页面映射交给 D3 超级提示词",
+    "优先级用 P0/P1/P2 表示",
+    "全部中文解释，种子词保留英文"
+  ],
+  "humanChecklist": [
+    "确认产品词矩阵是否覆盖所有主力产品线",
+    "验证供应商身份词是否覆盖目标市场常用表达",
+    "检查 PAA 触发词是否覆盖核心采购问题",
+    "确认工具执行清单是否可直接操作"
+  ],
+  "markdownTemplate": "# d3-0-seed-keyword-plan\n\n# 角色定义\n你是一名 B2B SEO 关键词策略师，熟悉供应商站、工厂站、OEM/ODM 站的关键词挖掘与页面映射。\n你的任务是在使用关键词工具前，把 D0/D1/D2 的战略信息转化为可执行的种子词作战表。\n\n# 输入信息\n站点域名：【填写】\n行业/品类名称：【填写】\n目标市场：【填写】\n供应链身份：【填写】\nD0 商业定位输出：【粘贴】\nD1 行业与采购认知输出：【粘贴】\nD2 供应商品牌与能力输出：【粘贴】\n主要产品线：【填写或粘贴】\n主要应用行业：【填写或粘贴】\n\n# 输出结构\n按 8 个模块输出。\n\n## 模块 1：核心产品词矩阵\n输出 T1/T2/T3 三层产品词。字段：英文种子词 / 中文解释 / 对应产品线 / 优先级 / 工具执行建议。\n\n## 模块 2：供应商身份词矩阵\n围绕 manufacturer、supplier、factory、wholesale、bulk、distributor、exporter 等词生成。\n字段同上。\n\n## 模块 3：定制与 OEM/ODM 词矩阵\n围绕 custom、private label、OEM、ODM、logo printing、custom size、custom design 等生成。\n\n## 模块 4：应用行业词矩阵\n按应用行业、终端用途、项目场景生成种子词。\n格式：[product] for [industry/application]。\n\n## 模块 5：材料/工艺/认证词矩阵\n围绕材料、技术参数、生产工艺、认证、合规标准生成。\n\n## 模块 6：采购问题与 PAA 触发词\n输出 50-80 个可用于 PAA/AlsoAsked 的英文问题词。\n必须覆盖 MOQ、lead time、sample、price、supplier selection、quality control、certification、shipping、customization。\n\n## 模块 7：竞品反查清单\n列出 5-10 个应反查的竞品/同行网站类型和搜索方式。如不能确定具体域名，给出搜索指令。\n\n## 模块 8：工具执行清单\n按 Semrush/Ahrefs、GKP、PAA、Google Suggest、竞品反查分别列执行步骤。\n\n# 输出规范\n- 全部中文解释，种子词保留英文。\n- 不要直接生成最终页面架构，页面映射交给 D3 超级提示词。\n- 优先级用 P0/P1/P2 表示。",
+  "downstreamStages": ["s4_seed_keywords"],
+  "relatedPrompts": ["d3-keyword-clustering", "d3-scoring-criteria"]
+}
