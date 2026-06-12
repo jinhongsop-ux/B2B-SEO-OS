@@ -167,7 +167,7 @@ export function buildWorkflowFacts(state) {
     contextDone: state.b2bContext?.status === 'done' && hasConfirmedContext(state.b2bContext),
     keywordImportDone: state.keywordImportBatches.some((batch) => batch.validRows > 0) && state.keywords.length > 0,
     cleaningWaiting: state.keywordCleaningRuns.some((run) => run.status === 'waiting_review'),
-    cleaningDone: state.keywordCleaningRuns.some((run) => run.status === 'done') && approvedKeywords.length > 0,
+    cleaningDone: state.keywordCleaningRuns.some((run) => run.status === 'done') && approvedOrAssignedKeywords(state.keywords).length > 0,
     assignmentWaiting: state.keywordAssignmentRuns.some((run) => run.status === 'waiting_review'),
     assignmentDone: state.keywordAssignmentRuns.some((run) => run.status === 'done') && state.keywordAssignments.length > 0,
     repairWaiting: state.pageRepairPackages.some((item) => item.status === 'waiting_review'),
@@ -188,4 +188,8 @@ function hasConfirmedContext(context) {
     (context.productLines || []).some((item) => item.confirmed) &&
     (context.targetCustomers || []).some((item) => item.confirmed)
   )
+}
+
+function approvedOrAssignedKeywords(keywords) {
+  return keywords.filter((kw) => kw.status === 'approved' || kw.isUsed)
 }

@@ -1800,3 +1800,460 @@ function generateSuggestedUrl(keyword, pageType) {
   const prefix = pageType === '资源文章' ? '/resources/' : pageType === 'FAQ 页面' ? '/faq/' : pageType === '解决方案页' ? '/solutions/' : pageType === '案例页面' ? '/case-studies/' : '/products/'
   return `${prefix}${slug}/`
 }
+
+// ── S9 页面修复包 ──
+
+export function generatePageRepairPackages(state, body) {
+  const findings = state.auditFindings.filter((f) => f.status === 'blocking' || f.status === 'open')
+  const assignments = state.keywordAssignments.filter((a) => a.status === 'approved')
+  const snapshot = state.siteReadSnapshots[0]
+
+  if (findings.length === 0 && assignments.length === 0) {
+    throw new AgentWorkflowError(409, 'no_repair_input', '没有审计发现或关键词分配可用于生成修复包。')
+  }
+
+  const now = new Date().toISOString()
+  const pages = snapshot?.pages || []
+  const packages = []
+
+  // Group findings by affected URL
+  const findingsByUrl = new Map()
+  for (const finding of findings) {
+    for (const url of (finding.affectedUrls || [])) {
+      if (!findingsByUrl.has(url)) findingsByUrl.set(url, [])
+      findingsByUrl.get(url).push(finding)
+    }
+  }
+
+  // Group assignments by URL
+  const assignmentsByUrl = new Map()
+  for (const assign of assignments) {
+    const url = assign.assignedUrl
+    if (!url) continue
+    if (!assignmentsByUrl.has(url)) assignmentsByUrl.set(url, [])
+    assignmentsByUrl.get(url).push(assign)
+  }
+
+  // Combine all affected URLs
+  const allUrls = new Set([...findingsByUrl.keys(), ...assignmentsByUrl.keys()])
+
+  for (const url of allUrls) {
+    const pageFindings = findingsByUrl.get(url) || []
+    const pageAssignments = assignmentsByUrl.get(url) || []
+    const page = pages.find((p) => p.url === url)
+
+    const recommendedChanges = []
+
+    for (const finding of pageFindings) {
+      recommendedChanges.push({
+        module: finding.category,
+        changeType: 'fix',
+        description: finding.problem,
+        suggestion: finding.recommendedAction,
+        relatedFindingId: finding.findingId,
+      })
+    }
+
+    if (pageAssignments.length > 0) {
+      const keywords = pageAssignments.map((a) => {
+        const kw = state.keywords.find((k) => k.keywordId === a.keywordId)
+        return kw?.keyword || a.keywordId
+      })
+      recommendedChanges.push({
+        module: 'keyword_optimization',
+        changeType: 'optimize',
+        description: `优化页面关键词：${keywords.join('、')}`,
+        suggestion: '在 H1、Title、Meta Description、正文中自然融入目标关键词',
+        relatedFindingId: null,
+      })
+    }
+
+    packages.push({
+      fixId: createId('fix'),
+      affectedUrl: url,
+      pageTitle: page?.title || url,
+      pageType: page?.pageType || '待确认',
+      targetKeywords: pageAssignments.map((a) => {
+        const kw = state.keywords.find((k) => k.keywordId === a.keywordId)
+        return kw?.keyword || ''
+      }).filter(Boolean),
+      relatedFindingIds: pageFindings.map((f) => f.findingId),
+      recommendedChanges,
+      hasBlockingIssue: pageFindings.some((f) => f.priority === 'blocking'),
+      priority: pageFindings.some((f) => f.priority === 'blocking') ? 'P0' : pageFindings.length > 0 ? 'P1' : 'P2',
+      status: 'waiting_review',
+      createdAt: now,
+    })
+  }
+
+  // Sort by priority
+  packages.sort((a, b) => (a.priority < b.priority ? -1 : 1))
+
+  state.pageRepairPackages = packages
+  addWorkspaceArtifact(state, {
+    type: 'page_repair_packages',
+    title: `页面修复包 (${packages.length} 个页面)`,
+    stepLabel: '页面修复包',
+    sourceId: 'page_repair_gen',
+    route: '/tasks',
+  })
+  return packages
+}
+
+export function reviewPageRepairPackage(state, fixId, body) {
+  const pkg = state.pageRepairPackages.find((p) => p.fixId === fixId)
+  if (!pkg) {
+    throw new AgentWorkflowError(404, 'unknown_package', '没有找到对应的修复包。')
+  }
+
+  const decision = cleanText(body.decision)
+  if (!['approved', 'rejected', 'deferred'].includes(decision)) {
+    throw new AgentWorkflowError(400, 'invalid_decision', '审核结果必须是 approved、rejected 或 deferred。')
+  }
+
+  pkg.status = decision === 'approved' ? 'done' : decision
+  pkg.reviewDecision = {
+    decision,
+    reviewer: cleanText(body.reviewer) || 'operator',
+    notes: cleanText(body.notes),
+    reviewedAt: new Date().toISOString(),
+  }
+  return pkg
+}
+
+// ── S10 未使用词聚类 ──
+
+export function generateClusterRun(state, body) {
+  // Collect unused keywords from pool, or fall back to raw/hold/rejected keywords that might be salvageable
+  const unusedPool = state.unusedKeywordPool.length > 0
+    ? state.unusedKeywordPool
+    : state.keywords.filter((kw) => !kw.isUsed && kw.status !== 'rejected').map((kw) => ({
+        keywordId: kw.keywordId, keyword: kw.keyword, volume: kw.volume, kd: kw.kd,
+      }))
+
+  // Also include rejected keywords that aren't brand/platform terms (potential content opportunities)
+  const rejectedReclaimable = state.keywords
+    .filter((kw) => kw.status === 'rejected' && !kw.isBrandTerm && !kw.isPlatformTerm)
+    .map((kw) => ({ keywordId: kw.keywordId, keyword: kw.keyword, volume: kw.volume, kd: kw.kd }))
+
+  const combinedPool = [...unusedPool, ...rejectedReclaimable]
+
+  if (combinedPool.length === 0) {
+    throw new AgentWorkflowError(409, 'no_unused_keywords', '没有未使用的关键词可供聚类。')
+  }
+
+  const now = new Date().toISOString()
+  const runId = createId('cluster_run')
+  const clusters = []
+  const contentOpportunities = []
+
+  // Simple intent-based clustering
+  const intentGroups = new Map()
+  for (const kw of combinedPool) {
+    const intent = classifyKeywordIntent(kw.keyword)
+    if (!intentGroups.has(intent)) intentGroups.set(intent, [])
+    intentGroups.get(intent).push(kw)
+  }
+
+  let clusterIndex = 0
+  for (const [intent, keywords] of intentGroups) {
+    clusterIndex++
+    const clusterId = `cluster-${String(clusterIndex).padStart(3, '0')}`
+    const totalVolume = keywords.reduce((sum, kw) => sum + (kw.volume || 0), 0)
+
+    clusters.push({
+      clusterId,
+      intent,
+      keywords: keywords.map((kw) => kw.keyword),
+      keywordCount: keywords.length,
+      totalVolume,
+    })
+
+    contentOpportunities.push({
+      opportunityId: createId('opp'),
+      clusterId,
+      intent,
+      keywords: keywords.map((kw) => kw.keyword),
+      keywordCount: keywords.length,
+      totalVolume,
+      recommendedPageType: intent === 'informational' ? '资源文章' : intent === 'comparison' ? '对比指南' : intent === 'faq' ? 'FAQ 页面' : '解决方案页',
+      recommendedUrl: generateSuggestedUrl(keywords[0].keyword, intent === 'informational' ? '资源文章' : '解决方案页'),
+      recommendedAction: 'new_page_task',
+      needsEvidence: false,
+      internalLinkTargets: [],
+      recommendedCta: 'Request a Quote',
+      reason: `${keywords.length} 个${intent}意图词可聚为一个内容集群`,
+    })
+  }
+
+  const clusterRun = {
+    clusterRunId: runId,
+    status: 'done',
+    totalUnusedKeywords: combinedPool.length,
+    clusterCount: clusters.length,
+    opportunityCount: contentOpportunities.length,
+    createdAt: now,
+    updatedAt: now,
+  }
+
+  state.unusedKeywordClusterRuns.unshift(clusterRun)
+  state.unusedKeywordClusters = clusters
+  state.contentOpportunities = contentOpportunities
+
+  addWorkspaceArtifact(state, {
+    type: 'keyword_cluster_run',
+    title: `未使用词聚类 (${clusters.length} 个集群)`,
+    stepLabel: '未使用词聚类',
+    sourceId: runId,
+    route: '/keywords',
+  })
+  return clusterRun
+}
+
+function classifyKeywordIntent(keyword) {
+  const lower = keyword.toLowerCase()
+  if (/\b(how|what|why|when|guide|tips|tutorial)\b/i.test(lower)) return 'informational'
+  if (/\b(vs|versus|compare|comparison|difference|best)\b/i.test(lower)) return 'comparison'
+  if (/\b(faq|moq|lead time|sample|minimum)\b/i.test(lower)) return 'faq'
+  if (/\b(solution|application|industry|use case)\b/i.test(lower)) return 'solution'
+  return 'commercial'
+}
+
+// ── S11 内容交接 ──
+
+export function generateContentHandoff(state, body) {
+  const opportunities = state.contentOpportunities
+  const repairDone = state.pageRepairPackages.filter((pkg) => pkg.status === 'done')
+
+  if (opportunities.length === 0 && repairDone.length === 0) {
+    throw new AgentWorkflowError(409, 'no_content_input', '没有内容机会或已确认修复包。')
+  }
+
+  const now = new Date().toISOString()
+  const handoffId = createId('handoff')
+  const contentTasks = []
+
+  // Tasks from content opportunities
+  for (const opp of opportunities) {
+    contentTasks.push({
+      taskId: createId('task'),
+      source: 'content_opportunity',
+      sourceId: opp.opportunityId,
+      title: `${opp.recommendedPageType}：${opp.keywords.slice(0, 3).join('、')}`,
+      targetUrl: opp.recommendedUrl,
+      pageType: opp.recommendedPageType,
+      primaryKeyword: opp.keywords[0] || '',
+      supportingKeywords: opp.keywords.slice(1),
+      cta: opp.recommendedCta,
+      status: 'brief_ready',
+    })
+  }
+
+  // Tasks from page repair packages
+  for (const pkg of repairDone) {
+    if (pkg.targetKeywords.length > 0) {
+      contentTasks.push({
+        taskId: createId('task'),
+        source: 'page_repair',
+        sourceId: pkg.fixId,
+        title: `页面修复：${pkg.pageTitle}`,
+        targetUrl: pkg.affectedUrl,
+        pageType: pkg.pageType,
+        primaryKeyword: pkg.targetKeywords[0] || '',
+        supportingKeywords: pkg.targetKeywords.slice(1),
+        cta: 'Request a Quote',
+        status: 'brief_ready',
+      })
+    }
+  }
+
+  const handoff = {
+    handoffId,
+    status: 'done',
+    totalTasks: contentTasks.length,
+    fromOpportunities: contentTasks.filter((t) => t.source === 'content_opportunity').length,
+    fromPageRepair: contentTasks.filter((t) => t.source === 'page_repair').length,
+    contentTasks,
+    createdAt: now,
+    updatedAt: now,
+  }
+
+  state.contentHandoffs.unshift(handoff)
+  addWorkspaceArtifact(state, {
+    type: 'content_handoff',
+    title: `内容交接包 (${contentTasks.length} 个任务)`,
+    stepLabel: 'Content Engine 交接',
+    sourceId: handoffId,
+    route: '/content',
+  })
+  return handoff
+}
+
+// ── S13 QA ──
+
+export function generateQaRun(state, body) {
+  const now = new Date().toISOString()
+  const runId = createId('qa_run')
+  const checks = []
+
+  // Check 1: Project profile complete
+  checks.push({
+    checkId: createId('qa'),
+    dimension: '项目档案',
+    status: state.project?.projectName && state.project?.domain ? 'pass' : 'fail',
+    detail: state.project?.projectName ? `项目：${state.project.projectName}` : '缺少项目档案',
+  })
+
+  // Check 2: Site read snapshot
+  const snapshot = state.siteReadSnapshots[0]
+  checks.push({
+    checkId: createId('qa'),
+    dimension: '站点读取',
+    status: snapshot?.pages?.length > 0 ? 'pass' : 'fail',
+    detail: snapshot ? `${snapshot.pageCount} 个页面` : '缺少站点读取快照',
+  })
+
+  // Check 3: Audit findings addressed
+  const blockingFindings = state.auditFindings.filter((f) => f.status === 'blocking')
+  checks.push({
+    checkId: createId('qa'),
+    dimension: '审计发现',
+    status: blockingFindings.length === 0 ? 'pass' : 'warning',
+    detail: blockingFindings.length > 0 ? `${blockingFindings.length} 个阻塞问题待处理` : '无阻塞问题',
+  })
+
+  // Check 4: B2B context confirmed
+  checks.push({
+    checkId: createId('qa'),
+    dimension: 'B2B 上下文',
+    status: state.b2bContext?.status === 'done' ? 'pass' : 'fail',
+    detail: state.b2bContext?.status === 'done' ? '商业事实已确认' : 'B2B 上下文未确认',
+  })
+
+  // Check 5: Keywords processed
+  const approvedKws = state.keywords.filter((kw) => kw.status === 'approved')
+  checks.push({
+    checkId: createId('qa'),
+    dimension: '关键词库',
+    status: approvedKws.length > 0 ? 'pass' : 'warning',
+    detail: `${approvedKws.length} 个已审核关键词`,
+  })
+
+  // Check 6: Page repair packages
+  const repairDone = state.pageRepairPackages.filter((p) => p.status === 'done')
+  checks.push({
+    checkId: createId('qa'),
+    dimension: '页面修复',
+    status: repairDone.length > 0 ? 'pass' : 'warning',
+    detail: `${repairDone.length} 个页面修复包已确认`,
+  })
+
+  // Check 7: Content handoff
+  checks.push({
+    checkId: createId('qa'),
+    dimension: '内容交接',
+    status: state.contentHandoffs.length > 0 ? 'pass' : 'warning',
+    detail: state.contentHandoffs.length > 0 ? `${state.contentHandoffs[0].totalTasks} 个内容任务` : '未生成内容交接包',
+  })
+
+  // Check 8: Trust evidence
+  const gaps = state.b2bContext?.trustEvidenceGaps || []
+  checks.push({
+    checkId: createId('qa'),
+    dimension: '信任证据',
+    status: gaps.length <= 3 ? 'pass' : 'warning',
+    detail: `${gaps.length} 个证据缺口`,
+  })
+
+  const passCount = checks.filter((c) => c.status === 'pass').length
+  const failCount = checks.filter((c) => c.status === 'fail').length
+  const warningCount = checks.filter((c) => c.status === 'warning').length
+
+  const qaRun = {
+    qaRunId: runId,
+    status: failCount === 0 ? 'done' : 'waiting_review',
+    passCount,
+    failCount,
+    warningCount,
+    totalChecks: checks.length,
+    checks,
+    summary: failCount > 0
+      ? `${failCount} 项检查未通过，需要修复后才能交付。`
+      : warningCount > 0
+        ? `所有核心检查通过，${warningCount} 项建议优化。可以交付。`
+        : '所有检查通过，可以交付。',
+    createdAt: now,
+    updatedAt: now,
+  }
+
+  state.qaRuns.unshift(qaRun)
+
+  // Auto-generate delivery report if QA passes
+  if (failCount === 0) {
+    const deliveryReport = {
+      reportId: createId('delivery'),
+      status: 'done',
+      qaRunId: runId,
+      summary: qaRun.summary,
+      metrics: {
+        totalPages: snapshot?.pageCount || 0,
+        totalKeywords: state.keywords.length,
+        approvedKeywords: approvedKws.length,
+        assignedKeywords: state.keywordAssignments.length,
+        contentTasks: state.contentHandoffs[0]?.totalTasks || 0,
+        blockingIssues: blockingFindings.length,
+        evidenceGaps: gaps.length,
+      },
+      deliverables: [
+        '站点读取快照',
+        '审计报告',
+        'B2B 上下文证据库',
+        '种子关键词计划',
+        '关键词库',
+        '页面修复包',
+        '内容交接包',
+      ],
+      nextSteps: [
+        '按页面修复包逐页优化',
+        '按内容交接包生产内容',
+        '补充信任证据缺口',
+        '配置 GSC/GA4 追踪',
+        '定期运行 SEO+Lead 监控',
+      ],
+      createdAt: now,
+      updatedAt: now,
+    }
+    state.deliveryReports.unshift(deliveryReport)
+  }
+
+  addWorkspaceArtifact(state, {
+    type: 'qa_run',
+    title: `QA 检查 (${passCount}通过 / ${warningCount}建议 / ${failCount}未通过)`,
+    stepLabel: 'QA 与交付报告',
+    sourceId: runId,
+    route: '/delivery',
+  })
+  return qaRun
+}
+
+export function reviewQaRun(state, qaRunId, body) {
+  const qaRun = state.qaRuns.find((run) => run.qaRunId === qaRunId)
+  if (!qaRun) {
+    throw new AgentWorkflowError(404, 'unknown_qa_run', '没有找到对应的 QA 记录。')
+  }
+
+  const decision = cleanText(body.decision)
+  if (!['approved', 'rejected'].includes(decision)) {
+    throw new AgentWorkflowError(400, 'invalid_decision', '审核结果必须是 approved 或 rejected。')
+  }
+
+  qaRun.status = decision === 'approved' ? 'done' : 'rejected'
+  qaRun.updatedAt = new Date().toISOString()
+  qaRun.reviewDecision = {
+    decision,
+    reviewer: cleanText(body.reviewer) || 'operator',
+    notes: cleanText(body.notes),
+    reviewedAt: qaRun.updatedAt,
+  }
+  return qaRun
+}

@@ -34,6 +34,12 @@ import {
   reviewCleaningRun,
   generateAssignmentRun,
   reviewAssignmentRun,
+  generatePageRepairPackages,
+  reviewPageRepairPackage,
+  generateClusterRun,
+  generateContentHandoff,
+  generateQaRun,
+  reviewQaRun,
 } from './agent-workflow-actions.mjs'
 import {
   SiteReadingError,
@@ -661,6 +667,179 @@ async function routeRequest(request, response) {
       return
     }
     sendJson(response, 200, { run })
+    return
+  }
+
+  // ── S9 页面修复包 ──
+
+  if (request.method === 'POST' && pathname === '/api/page-repair/generate') {
+    try {
+      const { state, result } = await workspaceStore.updateState((draft) => generatePageRepairPackages(draft, {}))
+      sendJson(response, 201, {
+        packages: result,
+        workspace: toWorkspaceView(state),
+        workflow: deriveWorkflow(state),
+      })
+    } catch (error) {
+      if (error instanceof AgentWorkflowError) {
+        sendError(response, error.statusCode, error.code, error.message)
+        return
+      }
+      throw error
+    }
+    return
+  }
+
+  if (request.method === 'GET' && pathname === '/api/page-repair') {
+    const state = await workspaceStore.readState()
+    sendJson(response, 200, { packages: state.pageRepairPackages })
+    return
+  }
+
+  const repairReviewMatch = pathname.match(/^\/api\/page-repair\/([^/]+)\/review$/)
+  if (request.method === 'POST' && repairReviewMatch) {
+    const body = await readJsonBody(request)
+    if (body.error) {
+      sendError(response, 400, 'bad_json', body.error)
+      return
+    }
+    try {
+      const { state, result } = await workspaceStore.updateState((draft) => reviewPageRepairPackage(draft, decodeURIComponent(repairReviewMatch[1]), body.value))
+      sendJson(response, 200, {
+        package: result,
+        workspace: toWorkspaceView(state),
+        workflow: deriveWorkflow(state),
+      })
+    } catch (error) {
+      if (error instanceof AgentWorkflowError) {
+        sendError(response, error.statusCode, error.code, error.message)
+        return
+      }
+      throw error
+    }
+    return
+  }
+
+  // ── S10 未使用词聚类 ──
+
+  if (request.method === 'POST' && pathname === '/api/keywords/cluster') {
+    try {
+      const { state, result } = await workspaceStore.updateState((draft) => generateClusterRun(draft, {}))
+      sendJson(response, 201, {
+        clusterRun: result,
+        clusters: state.unusedKeywordClusters,
+        opportunities: state.contentOpportunities,
+        workspace: toWorkspaceView(state),
+        workflow: deriveWorkflow(state),
+      })
+    } catch (error) {
+      if (error instanceof AgentWorkflowError) {
+        sendError(response, error.statusCode, error.code, error.message)
+        return
+      }
+      throw error
+    }
+    return
+  }
+
+  if (request.method === 'GET' && pathname === '/api/keywords/clusters') {
+    const state = await workspaceStore.readState()
+    sendJson(response, 200, {
+      clusterRuns: state.unusedKeywordClusterRuns,
+      clusters: state.unusedKeywordClusters,
+      opportunities: state.contentOpportunities,
+    })
+    return
+  }
+
+  // ── S11 内容交接 ──
+
+  if (request.method === 'POST' && pathname === '/api/content-handoff/generate') {
+    try {
+      const { state, result } = await workspaceStore.updateState((draft) => generateContentHandoff(draft, {}))
+      sendJson(response, 201, {
+        handoff: result,
+        workspace: toWorkspaceView(state),
+        workflow: deriveWorkflow(state),
+      })
+    } catch (error) {
+      if (error instanceof AgentWorkflowError) {
+        sendError(response, error.statusCode, error.code, error.message)
+        return
+      }
+      throw error
+    }
+    return
+  }
+
+  if (request.method === 'GET' && pathname === '/api/content-handoff') {
+    const state = await workspaceStore.readState()
+    sendJson(response, 200, { handoffs: state.contentHandoffs })
+    return
+  }
+
+  // ── S13 QA 与交付 ──
+
+  if (request.method === 'POST' && pathname === '/api/qa/run') {
+    try {
+      const { state, result } = await workspaceStore.updateState((draft) => generateQaRun(draft, {}))
+      sendJson(response, 201, {
+        qaRun: result,
+        deliveryReports: state.deliveryReports,
+        workspace: toWorkspaceView(state),
+        workflow: deriveWorkflow(state),
+      })
+    } catch (error) {
+      if (error instanceof AgentWorkflowError) {
+        sendError(response, error.statusCode, error.code, error.message)
+        return
+      }
+      throw error
+    }
+    return
+  }
+
+  if (request.method === 'GET' && pathname === '/api/qa') {
+    const state = await workspaceStore.readState()
+    sendJson(response, 200, {
+      qaRuns: state.qaRuns,
+      deliveryReports: state.deliveryReports,
+    })
+    return
+  }
+
+  const qaReviewMatch = pathname.match(/^\/api\/qa\/([^/]+)\/review$/)
+  if (request.method === 'POST' && qaReviewMatch) {
+    const body = await readJsonBody(request)
+    if (body.error) {
+      sendError(response, 400, 'bad_json', body.error)
+      return
+    }
+    try {
+      const { state, result } = await workspaceStore.updateState((draft) => reviewQaRun(draft, decodeURIComponent(qaReviewMatch[1]), body.value))
+      sendJson(response, 200, {
+        qaRun: result,
+        workspace: toWorkspaceView(state),
+        workflow: deriveWorkflow(state),
+      })
+    } catch (error) {
+      if (error instanceof AgentWorkflowError) {
+        sendError(response, error.statusCode, error.code, error.message)
+        return
+      }
+      throw error
+    }
+    return
+  }
+
+  // ── Delivered workspace ──
+
+  if (request.method === 'GET' && pathname === '/api/delivery') {
+    const state = await workspaceStore.readState()
+    sendJson(response, 200, {
+      deliveryReports: state.deliveryReports,
+      qaRuns: state.qaRuns,
+    })
     return
   }
 

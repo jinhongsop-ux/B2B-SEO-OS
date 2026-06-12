@@ -329,6 +329,7 @@ async function main() {
     'metal parts supplier,900,30,commercial',
     'buy cheap stuff,5000,15,transactional',
     'amazon warehouse,10000,5,navigational',
+    'how to ensure quality when sourcing internationally,400,20,informational',
   ].join('\n')
 
   const importResponse = await postJson('/api/keywords/import', {
@@ -337,16 +338,16 @@ async function main() {
     market: '美国',
   })
   assert.equal(importResponse.status, 201)
-  assert.equal(importResponse.body.importedCount, 6)
+  assert.equal(importResponse.body.importedCount, 7)
   assert.equal(importResponse.body.skippedCount, 0)
   assert.equal(importResponse.body.batch.sourceTool, 'semrush')
 
   const kwList = await getJson('/api/keywords')
-  assert.equal(kwList.keywords.length, 6)
+  assert.equal(kwList.keywords.length, 7)
   assert.equal(kwList.keywords[0].status, 'raw_imported')
   assert.equal(kwList.importBatches.length, 1)
   const importDup = await postJson('/api/keywords/import', {
-    csvText: 'keyword,volume\ncnc machining parts,1200\nbrand new keyword,200',
+    csvText: 'keyword,volume\ncnc machining parts,1200\nanother new keyword,150',
   })
   assert.equal(importDup.status, 201)
   assert.equal(importDup.body.importedCount, 1)
@@ -357,7 +358,7 @@ async function main() {
   const cleanResponse = await postJson('/api/keywords/clean', {})
   assert.equal(cleanResponse.status, 201)
   assert.equal(cleanResponse.body.cleaningRun.status, 'waiting_review')
-  assert.equal(cleanResponse.body.cleaningRun.totalKeywords, 7)
+  assert.equal(cleanResponse.body.cleaningRun.totalKeywords, 8)
   assert.ok(cleanResponse.body.cleaningRun.approveCount > 0)
   assert.ok(cleanResponse.body.cleaningRun.rejectCount > 0)
 
@@ -400,7 +401,7 @@ async function main() {
   assert.ok(rejectedKws.some((kw) => kw.keyword.includes('amazon')))
 
   const kwWorkspace = await getJson('/api/workspace')
-  assert.equal(kwWorkspace.workspace.keywordCount, 7)
+  assert.equal(kwWorkspace.workspace.keywordCount, 8)
   assert.equal(kwWorkspace.workspace.approvedKeywordCount, cleanResponse.body.cleaningRun.approveCount)
   assert.equal(kwWorkspace.workflow.currentStepId, 'keyword_assignment')
   assert.equal(kwWorkspace.workflow.steps[3].status, 'done')
@@ -439,6 +440,77 @@ async function main() {
   const assignWorkspace = await getJson('/api/workspace')
   assert.equal(assignWorkspace.workflow.steps[5].status, 'done')
   assert.equal(assignWorkspace.workflow.currentStepId, 'page_repair')
+
+  // ── S9 页面修复包 ──
+
+  const repairResponse = await postJson('/api/page-repair/generate', {})
+  assert.equal(repairResponse.status, 201)
+  assert.ok(repairResponse.body.packages.length > 0)
+  const repairPkg = repairResponse.body.packages[0]
+  assert.ok(repairPkg.recommendedChanges.length > 0)
+  assert.equal(repairPkg.status, 'waiting_review')
+
+  const repairGet = await getJson('/api/page-repair')
+  assert.ok(repairGet.packages.length > 0)
+
+  // Approve all packages
+  for (const pkg of repairResponse.body.packages) {
+    await postJson(`/api/page-repair/${pkg.fixId}/review`, { decision: 'approved' })
+  }
+
+  const repairWorkspace = await getJson('/api/workspace')
+  assert.equal(repairWorkspace.workflow.steps[6].status, 'done')
+
+  // ── S10 未使用词聚类 ──
+
+  const clusterResponse = await postJson('/api/keywords/cluster', {})
+  assert.equal(clusterResponse.status, 201)
+  assert.ok(clusterResponse.body.clusterRun.clusterCount > 0)
+  assert.ok(clusterResponse.body.opportunities.length > 0)
+  assert.equal(clusterResponse.body.clusterRun.status, 'done')
+
+  const clusterGet = await getJson('/api/keywords/clusters')
+  assert.ok(clusterGet.clusters.length > 0)
+  assert.ok(clusterGet.opportunities.length > 0)
+
+  // ── S11 内容交接 ──
+
+  const handoffResponse = await postJson('/api/content-handoff/generate', {})
+  assert.equal(handoffResponse.status, 201)
+  assert.ok(handoffResponse.body.handoff.totalTasks > 0)
+  assert.equal(handoffResponse.body.handoff.status, 'done')
+
+  const handoffGet = await getJson('/api/content-handoff')
+  assert.ok(handoffGet.handoffs.length > 0)
+
+  const handoffWorkspace = await getJson('/api/workspace')
+  assert.equal(handoffWorkspace.workflow.steps[7].status, 'done')
+
+  // ── S13 QA 与交付 ──
+
+  const qaResponse = await postJson('/api/qa/run', {})
+  assert.equal(qaResponse.status, 201)
+  assert.ok(qaResponse.body.qaRun.totalChecks > 0)
+  assert.ok(qaResponse.body.qaRun.passCount > 0)
+  assert.equal(typeof qaResponse.body.qaRun.summary, 'string')
+
+  // If all pass, delivery report is auto-generated
+  if (qaResponse.body.qaRun.failCount === 0) {
+    assert.ok(qaResponse.body.deliveryReports.length > 0)
+    assert.ok(qaResponse.body.deliveryReports[0].deliverables.length > 0)
+    assert.ok(qaResponse.body.deliveryReports[0].nextSteps.length > 0)
+  }
+
+  const qaGet = await getJson('/api/qa')
+  assert.ok(qaGet.qaRuns.length > 0)
+
+  const deliveryGet = await getJson('/api/delivery')
+  assert.ok(deliveryGet.deliveryReports.length > 0)
+
+  // Final workflow state
+  const finalWf = await getJson('/api/workflow')
+  assert.equal(finalWf.workflow.completedCount, 11)
+  assert.equal(finalWf.workflow.steps.every((s) => s.status === 'done'), true)
 }
 
 async function waitForHealth() {
