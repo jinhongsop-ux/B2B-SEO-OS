@@ -32,6 +32,8 @@ import {
   importKeywords,
   generateCleaningRun,
   reviewCleaningRun,
+  generateAssignmentRun,
+  reviewAssignmentRun,
 } from './agent-workflow-actions.mjs'
 import {
   SiteReadingError,
@@ -334,6 +336,60 @@ async function routeRequest(request, response) {
       const { state, result } = await workspaceStore.updateState((draft) => reviewCleaningRun(draft, decodeURIComponent(cleaningReviewMatch[1]), body.value))
       sendJson(response, 200, {
         cleaningRun: result,
+        workspace: toWorkspaceView(state),
+        workflow: deriveWorkflow(state),
+      })
+    } catch (error) {
+      if (error instanceof AgentWorkflowError) {
+        sendError(response, error.statusCode, error.code, error.message)
+        return
+      }
+      throw error
+    }
+    return
+  }
+
+  // ── S8 关键词分配 ──
+
+  if (request.method === 'POST' && pathname === '/api/keywords/assign') {
+    try {
+      const { state, result } = await workspaceStore.updateState((draft) => generateAssignmentRun(draft, {}))
+      sendJson(response, 201, {
+        assignmentRun: result,
+        workspace: toWorkspaceView(state),
+        workflow: deriveWorkflow(state),
+      })
+    } catch (error) {
+      if (error instanceof AgentWorkflowError) {
+        sendError(response, error.statusCode, error.code, error.message)
+        return
+      }
+      throw error
+    }
+    return
+  }
+
+  if (request.method === 'GET' && pathname === '/api/keywords/assignment-runs') {
+    const state = await workspaceStore.readState()
+    sendJson(response, 200, {
+      assignmentRuns: state.keywordAssignmentRuns,
+      assignments: state.keywordAssignments,
+      unusedPool: state.unusedKeywordPool,
+    })
+    return
+  }
+
+  const assignReviewMatch = pathname.match(/^\/api\/keywords\/assignment-runs\/([^/]+)\/review$/)
+  if (request.method === 'POST' && assignReviewMatch) {
+    const body = await readJsonBody(request)
+    if (body.error) {
+      sendError(response, 400, 'bad_json', body.error)
+      return
+    }
+    try {
+      const { state, result } = await workspaceStore.updateState((draft) => reviewAssignmentRun(draft, decodeURIComponent(assignReviewMatch[1]), body.value))
+      sendJson(response, 200, {
+        assignmentRun: result,
         workspace: toWorkspaceView(state),
         workflow: deriveWorkflow(state),
       })

@@ -405,6 +405,40 @@ async function main() {
   assert.equal(kwWorkspace.workflow.currentStepId, 'keyword_assignment')
   assert.equal(kwWorkspace.workflow.steps[3].status, 'done')
   assert.equal(kwWorkspace.workflow.steps[4].status, 'done')
+
+  // ── S8 关键词分配 ──
+
+  const assignResponse = await postJson('/api/keywords/assign', {})
+  assert.equal(assignResponse.status, 201)
+  assert.equal(assignResponse.body.assignmentRun.status, 'waiting_review')
+  assert.ok(assignResponse.body.assignmentRun.totalKeywords > 0)
+  assert.ok(assignResponse.body.assignmentRun.suggestions.length > 0)
+
+  const assignSuggestions = assignResponse.body.assignmentRun.suggestions
+  const productSuggestion = assignSuggestions.find((s) => s.keyword.includes('cnc'))
+  assert.ok(productSuggestion)
+  assert.ok(productSuggestion.suggestedUrl)
+  assert.ok(productSuggestion.suggestedPageType)
+
+  const assignRuns = await getJson('/api/keywords/assignment-runs')
+  assert.equal(assignRuns.assignmentRuns.length, 1)
+
+  const assignReview = await postJson(`/api/keywords/assignment-runs/${assignResponse.body.assignmentRun.assignmentRunId}/review`, {
+    decision: 'approved',
+    reviewer: 'operator',
+    notes: '分配合理。',
+  })
+  assert.equal(assignReview.status, 200)
+  assert.equal(assignReview.body.assignmentRun.status, 'done')
+
+  const kwFinal = await getJson('/api/keywords')
+  const assignedKws = kwFinal.keywords.filter((kw) => kw.isUsed)
+  assert.ok(assignedKws.length > 0)
+  assert.ok(assignedKws.every((kw) => kw.assignedUrl))
+
+  const assignWorkspace = await getJson('/api/workspace')
+  assert.equal(assignWorkspace.workflow.steps[5].status, 'done')
+  assert.equal(assignWorkspace.workflow.currentStepId, 'page_repair')
 }
 
 async function waitForHealth() {

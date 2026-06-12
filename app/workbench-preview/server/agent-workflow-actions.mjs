@@ -1617,3 +1617,186 @@ function parseCsvLine(line) {
   result.push(current)
   return result
 }
+
+// ── S8 关键词分配 ──
+
+export function generateAssignmentRun(state, body) {
+  const approvedKeywords = state.keywords.filter((kw) => kw.status === 'approved' && !kw.assignedPageId)
+  if (approvedKeywords.length === 0) {
+    throw new AgentWorkflowError(409, 'no_approved_keywords', '没有待分配的已审核关键词。')
+  }
+
+  const snapshot = state.siteReadSnapshots[0]
+  const pages = snapshot?.pages || []
+  const now = new Date().toISOString()
+  const runId = createId('assign_run')
+  const suggestions = []
+
+  for (const kw of approvedKeywords) {
+    const matchedPage = findBestPageMatch(kw, pages)
+    const isNewPage = !matchedPage
+    const suggestedPageType = isNewPage ? suggestPageType(kw) : (matchedPage?.pageType || '页面')
+    const suggestedUrl = matchedPage?.url || generateSuggestedUrl(kw.keyword, suggestedPageType)
+
+    suggestions.push({
+      keywordId: kw.keywordId,
+      keyword: kw.keyword,
+      volume: kw.volume,
+      kd: kw.kd,
+      assignedPageId: matchedPage?.pageId || null,
+      assignedUrl: matchedPage?.url || null,
+      suggestedUrl,
+      suggestedPageType,
+      isNewPage,
+      reason: matchedPage
+        ? `匹配到现有页面：${matchedPage.title}`
+        : `建议新建${suggestedPageType}页面`,
+      action: isNewPage ? 'assign_new_page' : 'assign_existing_page',
+    })
+  }
+
+  const existingCount = suggestions.filter((s) => !s.isNewPage).length
+  const newPageCount = suggestions.filter((s) => s.isNewPage).length
+
+  const assignmentRun = {
+    assignmentRunId: runId,
+    status: 'waiting_review',
+    totalKeywords: approvedKeywords.length,
+    existingPageAssignments: existingCount,
+    newPageSuggestions: newPageCount,
+    suggestions,
+    createdAt: now,
+    updatedAt: now,
+  }
+
+  state.keywordAssignmentRuns.unshift(assignmentRun)
+  addWorkspaceArtifact(state, {
+    type: 'keyword_assignment_run',
+    title: `关键词分配建议 (${existingCount} 现有页 / ${newPageCount} 新建页)`,
+    stepLabel: '人工审核分配',
+    sourceId: runId,
+    route: '/keywords',
+  })
+  return assignmentRun
+}
+
+export function reviewAssignmentRun(state, assignmentRunId, body) {
+  const assignmentRun = state.keywordAssignmentRuns.find((run) => run.assignmentRunId === assignmentRunId)
+  if (!assignmentRun) {
+    throw new AgentWorkflowError(404, 'unknown_assignment_run', '没有找到对应的分配记录。')
+  }
+  if (assignmentRun.status !== 'waiting_review') {
+    throw new AgentWorkflowError(409, 'already_reviewed', '此分配记录已审核。')
+  }
+
+  const decision = cleanText(body.decision)
+  if (!['approved', 'rejected'].includes(decision)) {
+    throw new AgentWorkflowError(400, 'invalid_decision', '审核结果必须是 approved 或 rejected。')
+  }
+
+  const now = new Date().toISOString()
+
+  if (decision === 'rejected') {
+    assignmentRun.status = 'rejected'
+    assignmentRun.updatedAt = now
+    assignmentRun.reviewDecision = { decision, reviewer: cleanText(body.reviewer) || 'operator', notes: cleanText(body.notes), reviewedAt: now }
+    return assignmentRun
+  }
+
+  // Approved: apply assignments
+  const overrides = body.overrides && typeof body.overrides === 'object' ? body.overrides : {}
+  const keywordMap = new Map(state.keywords.map((kw) => [kw.keywordId, kw]))
+
+  for (const suggestion of assignmentRun.suggestions) {
+    const kw = keywordMap.get(suggestion.keywordId)
+    if (!kw) continue
+
+    const override = overrides[suggestion.keywordId]
+    const finalUrl = override?.url || suggestion.suggestedUrl
+    const finalPageType = override?.pageType || suggestion.suggestedPageType
+    const finalAction = override?.action || suggestion.action
+    const skip = override?.skip === true
+
+    if (skip) {
+      kw.status = 'unused_valid'
+      kw.isValidUnused = true
+      continue
+    }
+
+    kw.assignedUrl = finalUrl
+    kw.assignedPageId = suggestion.assignedPageId
+    kw.isUsed = true
+
+    state.keywordAssignments.push({
+      assignmentId: createId('kw_assign'),
+      keywordId: kw.keywordId,
+      status: 'approved',
+      assignedUrl: finalUrl,
+      assignedPageType: finalPageType,
+      isNewPage: finalAction === 'assign_new_page',
+      reviewerNotes: override?.notes || '',
+      createdAt: now,
+    })
+  }
+
+  // Collect unused valid keywords
+  state.unusedKeywordPool = state.keywords
+    .filter((kw) => kw.status === 'unused_valid' || (kw.status === 'approved' && !kw.isUsed))
+    .map((kw) => ({
+      keywordId: kw.keywordId,
+      keyword: kw.keyword,
+      volume: kw.volume,
+      kd: kw.kd,
+    }))
+
+  assignmentRun.status = 'done'
+  assignmentRun.updatedAt = now
+  assignmentRun.reviewDecision = { decision: 'approved', reviewer: cleanText(body.reviewer) || 'operator', notes: cleanText(body.notes), reviewedAt: now }
+
+  addWorkspaceArtifact(state, {
+    type: 'keyword_assignment_approved',
+    title: '关键词分配已批准',
+    stepLabel: '人工审核分配',
+    sourceId: assignmentRunId,
+    route: '/keywords',
+  })
+  return assignmentRun
+}
+
+function findBestPageMatch(kw, pages) {
+  const lower = kw.keyword.toLowerCase()
+
+  // Product keywords → product pages
+  if (/\b(product|parts|component|material)\b/i.test(lower)) {
+    return pages.find((p) => p.pageType === '产品线页面' || p.pageType === '产品详情') || null
+  }
+  // Supplier/manufacturer keywords → capability/about
+  if (/\b(supplier|manufacturer|factory|exporter)\b/i.test(lower)) {
+    return pages.find((p) => p.pageType === '能力页面' || p.pageType === '关于我们') || null
+  }
+  // Contact/RFQ keywords → contact page
+  if (/\b(rfq|quote|contact|inquiry)\b/i.test(lower)) {
+    return pages.find((p) => p.pageType === '联系/RFQ') || null
+  }
+  // Custom/OEM keywords → capability page
+  if (/\b(custom|oem|odm|private label)\b/i.test(lower)) {
+    return pages.find((p) => p.pageType === '能力页面') || null
+  }
+
+  return null
+}
+
+function suggestPageType(kw) {
+  const lower = kw.keyword.toLowerCase()
+  if (/\b(how to|guide|tips|compare|vs|difference)\b/i.test(lower)) return '资源文章'
+  if (/\b(faq|question|moq|lead time|sample)\b/i.test(lower)) return 'FAQ 页面'
+  if (/\b(solution|application|industry)\b/i.test(lower)) return '解决方案页'
+  if (/\b(case study|project|review)\b/i.test(lower)) return '案例页面'
+  return '产品线页面'
+}
+
+function generateSuggestedUrl(keyword, pageType) {
+  const slug = keyword.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  const prefix = pageType === '资源文章' ? '/resources/' : pageType === 'FAQ 页面' ? '/faq/' : pageType === '解决方案页' ? '/solutions/' : pageType === '案例页面' ? '/case-studies/' : '/products/'
+  return `${prefix}${slug}/`
+}
